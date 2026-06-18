@@ -9,6 +9,7 @@ A simple anti-spam plugin for YOURLS that requires users to solve a basic math a
 - **AJAX Support**: Works seamlessly with YOURLS' AJAX form submissions
 - **Error Handling**: Provides clear feedback when the answer is incorrect or missing
 - **Styling**: Includes CSS styling to make the CAPTCHA field visible and user-friendly
+- **Clean Code**: Well-structured, readable, and maintainable
 
 ## Installation
 
@@ -34,7 +35,7 @@ If the answer is incorrect or missing, the plugin will display an error message 
 ## Requirements
 
 - YOURLS 1.7 or higher
-- PHP 5.3 or higher (tested with PHP 5.3+ for backward compatibility)
+- PHP 5.4 or higher (uses `session_status()`)
 - JavaScript enabled in the browser (for AJAX form submissions)
 - PHP sessions must be enabled on your server
 
@@ -48,9 +49,8 @@ You can modify the plugin behavior by editing the `plugin.php` file:
 
 ## Files
 
-- `plugin.php` - Main plugin file with all the PHP logic and embedded JavaScript
+- `plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
 - `README.md` - This documentation file
-- `MOCKUP.md` - UI mockup and visual representation
 
 ## How It Works
 
