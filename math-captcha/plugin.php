@@ -12,8 +12,17 @@ Author URI: https://github.com/MarcProe
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 
 // Start session if not already started
-if ( session_status() === PHP_SESSION_NONE ) {
-    session_start();
+if ( !isset( $_SESSION ) || session_status() === PHP_SESSION_NONE ) {
+    if ( function_exists( 'session_status' ) ) {
+        if ( session_status() === PHP_SESSION_NONE ) {
+            session_start();
+        }
+    } else {
+        // PHP < 5.4 compatibility
+        if ( session_id() === '' ) {
+            session_start();
+        }
+    }
 }
 
 // Generate a new math question and store it in session
@@ -44,7 +53,8 @@ function math_captcha_verify($user_answer) {
     }
     
     $correct_answer = $_SESSION['math_captcha_answer'];
-    $user_answer = intval($user_answer);
+    // Sanitize the user's answer - only allow digits
+    $user_answer = yourls_sanitize_int( $user_answer );
     
     // Clear the question after verification
     unset($_SESSION['math_captcha_question']);
@@ -71,8 +81,17 @@ yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
 yourls_add_filter( 'shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4 );
 
 function math_captcha_verify_on_add($shunt, $url, $keyword, $title) {
-    // Check if this is an AJAX request or regular form submission
-    $is_ajax = defined('YOURLS_AJAX') && YOURLS_AJAX;
+    // Check if this is a bookmarklet request (no CAPTCHA field in form)
+    // Bookmarklets are identified by the presence of 'u' or 'up' in GET parameters
+    $is_bookmarklet = isset($_GET['u']) || isset($_GET['up']);
+    
+    // For bookmarklets, we might want to skip CAPTCHA or handle differently
+    // For now, we'll skip CAPTCHA for bookmarklets as they don't have a form to display the question
+    // This can be changed if needed by adding CAPTCHA support to bookmarklets
+    if ($is_bookmarklet) {
+        // Skip CAPTCHA for bookmarklets
+        return $shunt;
+    }
     
     // Get the user's answer from POST or GET
     $user_answer = '';
@@ -111,15 +130,6 @@ function math_captcha_verify_on_add($shunt, $url, $keyword, $title) {
     
     // Answer is correct, allow the URL to be added
     return $shunt;
-}
-
-// Also add the CAPTCHA field to the bookmarklet form in the admin
-// We need to modify the form output for bookmarklets too
-yourls_add_action( 'bookmarklet', 'math_captcha_init_bookmarklet' );
-
-function math_captcha_init_bookmarklet() {
-    // Just ensure a question is generated for bookmarklet requests
-    math_captcha_get_question();
 }
 
 // Add CSS for the CAPTCHA field

@@ -2,9 +2,11 @@
 // Modify the add_link function to include the CAPTCHA answer in AJAX requests
 
 jQuery(document).ready(function($) {
-    // Override the add_link function to include CAPTCHA answer
+    // Store the original add_link function
     if (typeof add_link === 'function') {
         var original_add_link = add_link;
+        
+        // Override the add_link function to include CAPTCHA answer
         add_link = function() {
             var captcha_answer = $('#math-captcha-answer').val();
             
@@ -52,7 +54,7 @@ jQuery(document).ready(function($) {
                     // If CAPTCHA was wrong, generate a new question
                     if (data.code === 'error:captcha_wrong' || data.code === 'error:captcha_missing') {
                         // Reload the page to get a new CAPTCHA question
-                        // This is the simplest approach
+                        // This is the simplest approach to ensure a new question is generated
                         setTimeout(function() {
                             location.reload();
                         }, 2000);

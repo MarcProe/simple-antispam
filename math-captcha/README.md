@@ -29,11 +29,14 @@ Once activated, the plugin automatically adds a math question field to the URL s
 
 If the answer is incorrect or missing, the plugin will display an error message and generate a new question.
 
+**Note on Bookmarklets**: By default, CAPTCHA is skipped for bookmarklet requests since they don't display a form. If you want to enable CAPTCHA for bookmarklets, you would need to modify the plugin to handle bookmarklet-specific logic.
+
 ## Requirements
 
 - YOURLS 1.7 or higher
-- PHP 5.6 or higher (for session_status() function)
+- PHP 5.3 or higher (tested with PHP 5.3+ for backward compatibility)
 - JavaScript enabled in the browser (for AJAX form submissions)
+- PHP sessions must be enabled on your server
 
 ## Customization
 
