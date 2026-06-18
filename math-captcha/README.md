@@ -48,9 +48,9 @@ You can modify the plugin behavior by editing the `plugin.php` file:
 
 ## Files
 
-- `plugin.php` - Main plugin file with all the PHP logic
-- `math-captcha.js` - JavaScript for handling AJAX form submissions
+- `plugin.php` - Main plugin file with all the PHP logic and embedded JavaScript
 - `README.md` - This documentation file
+- `MOCKUP.md` - UI mockup and visual representation
 
 ## How It Works
 

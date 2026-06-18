@@ -11,18 +11,10 @@ Author URI: https://github.com/MarcProe
 // No direct call
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 
-// Start session if not already started
-if ( !isset( $_SESSION ) || session_status() === PHP_SESSION_NONE ) {
-    if ( function_exists( 'session_status' ) ) {
-        if ( session_status() === PHP_SESSION_NONE ) {
-            session_start();
-        }
-    } else {
-        // PHP < 5.4 compatibility
-        if ( session_id() === '' ) {
-            session_start();
-        }
-    }
+// Start session - YOURLS doesn't start sessions by default, so we must do it
+// We need to start the session early, before any output
+if ( session_status() === PHP_SESSION_NONE ) {
+    session_start();
 }
 
 // Generate a new math question and store it in session
@@ -67,9 +59,9 @@ function math_captcha_verify($user_answer) {
 function math_captcha_add_field_to_form() {
     $question = math_captcha_get_question();
     echo '<div id="math-captcha-field">';
-    echo '<label for="math-captcha-answer"><strong>' . yourls__( 'Math CAPTCHA' ) . '</strong></label>:';
+    echo '<label for="math-captcha-answer"><strong>' . yourls_esc_html( yourls__( 'Math CAPTCHA' ) ) . '</strong></label>:';
     echo '<span id="math-captcha-question"> ' . yourls_esc_html($question) . ' = </span>';
-    echo '<input type="text" id="math-captcha-answer" name="math_captcha_answer" class="text" size="10" placeholder="Answer" />';
+    echo '<input type="text" id="math-captcha-answer" name="math_captcha_answer" class="text" size="10" placeholder="' . yourls_esc_attr( yourls__( 'Answer' ) ) . '" />';
     echo '</div>';
 }
 
@@ -134,7 +126,7 @@ function math_captcha_verify_on_add($shunt, $url, $keyword, $title) {
 
 // Add CSS for the CAPTCHA field
 function math_captcha_add_css() {
-    echo '<style>';
+    echo '<style type="text/css">';
     echo '#math-captcha-field { margin-top: 10px; padding: 10px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 4px; }';
     echo '#math-captcha-question { font-weight: bold; color: #5d4037; }';
     echo '#math-captcha-answer { width: 80px; margin-left: 10px; }';
@@ -143,11 +135,72 @@ function math_captcha_add_css() {
 
 yourls_add_action( 'admin_page_before_form', 'math_captcha_add_css' );
 
-// Enqueue JavaScript for the CAPTCHA
-function math_captcha_enqueue_js() {
-    $plugin_url = yourls_plugin_url( __FILE__ );
-    $js_url = $plugin_url . 'math-captcha.js';
-    echo '<script type="text/javascript" src="' . yourls_esc_attr($js_url) . '"></script>';
+// Add inline JavaScript for the CAPTCHA - we'll hook into the form submission
+function math_captcha_add_js() {
+    echo '<script type="text/javascript">';
+    echo 'jQuery(document).ready(function($) {';
+    echo '    // Modify the AJAX request to include CAPTCHA answer';
+    echo '    var original_ajax_url = ajaxurl;';
+    echo '    ';
+    echo '    // Override the add_link function to include CAPTCHA answer';
+    echo '    if (typeof add_link === "function") {';
+    echo '        var original_add_link = add_link;';
+    echo '        add_link = function() {';
+    echo '            var captcha_answer = $("#math-captcha-answer").val();';
+    echo '            ';
+    echo '            // If CAPTCHA field exists and is empty, show error';
+    echo '            if ($("#math-captcha-answer").length > 0 && !captcha_answer) {';
+    echo '                feedback("Please solve the math CAPTCHA to shorten URLs.", "fail");';
+    echo '                return false;';
+    echo '            }';
+    echo '            ';
+    echo '            // Get the original parameters';
+    echo '            var newurl = $("#add-url").val();';
+    echo '            var nonce = $("#nonce-add").val();';
+    echo '            var keyword = $("#add-keyword").val();';
+    echo '            var nextid = parseInt($("#main_table tbody tr[id^=\"id-\"]").length) + 1;';
+    echo '            ';
+    echo '            if ( !newurl || newurl == "http://" || newurl == "https://" ) {';
+    echo '                return;';
+    echo '            }';
+    echo '            ';
+    echo '            // Disable button and show loading';
+    echo '            if( $("#add-button").hasClass("disabled") ) {';
+    echo '                return false;';
+    echo '            }';
+    echo '            add_loading("#add-button");';
+    echo '            ';
+    echo '            // Make AJAX request with CAPTCHA answer';
+    echo '            $.getJSON(';
+    echo '                ajaxurl,';
+    echo '                {action:"add", url: newurl, keyword: keyword, nonce: nonce, rowid: nextid, math_captcha_answer: captcha_answer},';
+    echo '                function(data){';
+    echo '                    if(data.status == "success") {';
+    echo '                        $("#main_table tbody").prepend( data.html ).trigger("update");';
+    echo '                        $("#nourl_found").css("display", "none");';
+    echo '                        zebra_table();';
+    echo '                        increment_counter();';
+    echo '                        toggle_share_fill_boxes( data.url.url, data.shorturl, data.url.title );';
+    echo '                    }';
+    echo '                    ';
+    echo '                    add_link_reset();';
+    echo '                    end_loading("#add-button");';
+    echo '                    end_disable("#add-button");';
+    echo '                    ';
+    echo '                    feedback(data.message, data.status);';
+    echo '                    ';
+    echo '                    // If CAPTCHA was wrong, reload to get new question';
+    echo '                    if (data.code === "error:captcha_wrong" || data.code === "error:captcha_missing") {';
+    echo '                        setTimeout(function() {';
+    echo '                            location.reload();';
+    echo '                        }, 2000);';
+    echo '                    }';
+    echo '                }';
+    echo '            );';
+    echo '        };';
+    echo '    }';
+    echo '});';
+    echo '</script>';
 }
 
-yourls_add_action( 'admin_page_before_form', 'math_captcha_enqueue_js' );
+yourls_add_action( 'admin_page_before_form', 'math_captcha_add_js' );
