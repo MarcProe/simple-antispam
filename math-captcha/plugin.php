@@ -101,44 +101,29 @@ function math_captcha_add_js() {
     jQuery(document).ready(function($) {
         if ( typeof add_link !== 'function' ) { return; }
 
+        var _orig = add_link;
         add_link = function() {
-            var captcha_answer = $('#math-captcha-answer').val();
-            if ( !captcha_answer ) {
+            var answer = $('#math-captcha-answer').val();
+            if ( !answer ) {
                 feedback( 'Please solve the math CAPTCHA to shorten URLs.', 'fail' );
                 return false;
             }
 
-            var newurl  = $('#add-url').val();
-            var nonce   = $('#nonce-add').val();
-            var keyword = $('#add-keyword').val();
-            var nextid  = parseInt( $('#main_table tbody tr[id^="id-"]').length ) + 1;
-
-            if ( !newurl || newurl === 'http://' || newurl === 'https://' ) { return; }
-            if ( $('#add-button').hasClass('disabled') ) { return false; }
-
-            add_loading( '#add-button' );
-
-            $.getJSON(
-                ajaxurl,
-                { action: 'add', url: newurl, keyword: keyword, nonce: nonce, rowid: nextid, math_captcha_answer: captcha_answer },
-                function( data ) {
-                    if ( data.status === 'success' ) {
-                        $('#main_table tbody').prepend( data.html ).trigger( 'update' );
-                        $('#nourl_found').css( 'display', 'none' );
-                        zebra_table();
-                        increment_counter();
-                        toggle_share_fill_boxes( data.url.url, data.shorturl, data.url.title );
-                    }
-                    add_link_reset();
-                    end_loading( '#add-button' );
-                    end_disable( '#add-button' );
-                    feedback( data.message, data.status );
-
-                    if ( data.code === 'error:captcha_wrong' || data.code === 'error:captcha_missing' ) {
-                        setTimeout( function() { location.reload(); }, 2000 );
-                    }
+            // Temporarily wrap $.getJSON to inject captcha answer
+            var _origGetJSON = $.getJSON;
+            $.getJSON = function( url, data, callback ) {
+                if ( data && data.action === 'add' ) {
+                    data.math_captcha_answer = answer;
                 }
-            );
+                return _origGetJSON.call( this, url, data, callback );
+            };
+
+            try {
+                return _orig.apply( this, arguments );
+            } finally {
+                // Always restore original $.getJSON, even on errors
+                $.getJSON = _origGetJSON;
+            }
         };
     });
     </script>
