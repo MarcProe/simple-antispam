@@ -16,7 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-function math_captcha_generate_question()
+function math_captcha_generate_question(): void
 {
     $num1 = rand(1, 99);
     $num2 = rand(1, 99);
@@ -24,15 +24,15 @@ function math_captcha_generate_question()
     $_SESSION['math_captcha_answer']   = $num1 + $num2;
 }
 
-function math_captcha_get_question()
+function math_captcha_get_question(): string
 {
     if (!isset($_SESSION['math_captcha_answer'])) {
         math_captcha_generate_question();
     }
-    return $_SESSION['math_captcha_question'];
+    return (string) $_SESSION['math_captcha_question'];
 }
 
-function math_captcha_verify($user_answer)
+function math_captcha_verify(string $user_answer): bool
 {
     if (!isset($_SESSION['math_captcha_answer'])) {
         return false;
@@ -43,7 +43,7 @@ function math_captcha_verify($user_answer)
     return $given === $correct;
 }
 
-function math_captcha_add_field_to_form()
+function math_captcha_add_field_to_form(): void
 {
     $question = math_captcha_get_question();
     ?>
@@ -65,6 +65,13 @@ yourls_add_action('html_addnew', 'math_captcha_add_field_to_form');
 
 yourls_add_filter('shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4);
 
+/**
+ * @param mixed $shunt
+ * @param string $url
+ * @param string $keyword
+ * @param string $title
+ * @return mixed
+ */
 function math_captcha_verify_on_add($shunt, $url, $keyword, $title)
 {
     // Bookmarklet requests have no form, skip CAPTCHA
@@ -72,7 +79,7 @@ function math_captcha_verify_on_add($shunt, $url, $keyword, $title)
         return $shunt;
     }
 
-    $user_answer = isset($_REQUEST['math_captcha_answer']) ? $_REQUEST['math_captcha_answer'] : '';
+    $user_answer = isset($_REQUEST['math_captcha_answer']) ? (string) $_REQUEST['math_captcha_answer'] : '';
 
     if ($user_answer === '') {
         return array(
@@ -98,7 +105,7 @@ function math_captcha_verify_on_add($shunt, $url, $keyword, $title)
     return $shunt;
 }
 
-function math_captcha_add_css()
+function math_captcha_add_css(): void
 {
     ?>
     <style>
@@ -110,7 +117,7 @@ function math_captcha_add_css()
 }
 yourls_add_action('admin_page_before_form', 'math_captcha_add_css');
 
-function math_captcha_add_js()
+function math_captcha_add_js(): void
 {
     ?>
     <script>
