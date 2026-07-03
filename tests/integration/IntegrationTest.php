@@ -6,8 +6,10 @@
  * without requiring a full web server setup.
  */
 
-require_once __DIR__ . '/../../stubs/yourls.php';
-require_once __DIR__ . '/../../plugin.php';
+// The bootstrap defines YOURLS_ABSPATH and hook-recording mocks before it
+// includes plugin.php. Including plugin.php without YOURLS_ABSPATH defined
+// makes it die() silently with exit code 0, which would fake a passing run.
+require_once __DIR__ . '/../bootstrap.php';
 
 /**
  * Mock YOURLS functions for testing
