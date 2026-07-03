@@ -78,10 +78,40 @@ echo "Initializing database..."
 cd yourls
 touch user/data/yourls.db
 chmod 777 user/data/yourls.db
-sqlite3 user/data/yourls.db < sql/yourls.sql
-sqlite3 user/data/yourls.db \
-    "INSERT OR REPLACE INTO yourls_options (option_name, option_value) \
-     VALUES ('active_plugins', 'math-captcha/plugin.php');"
+
+# YOURLS 1.9.2 doesn't include a separate SQL file in the tarball
+# The schema is embedded in the installer. We'll create it manually.
+echo "Creating database schema..."
+php -r "
+\$db = new SQLite3('user/data/yourls.db');
+
+// Create the tables manually based on YOURLS schema
+\$tables = [
+    \"CREATE TABLE IF NOT EXISTS yourls_url (\n        keyword VARCHAR(200) PRIMARY KEY,\n        url TEXT NOT NULL,\n        title TEXT,\n        timestamp DATETIME,\n        ip VARCHAR(45),\n        clicks MEDIUMINT UNSIGNED DEFAULT 0\n    )\",
+    \"CREATE TABLE IF NOT EXISTS yourls_options (\n        option_name VARCHAR(255) PRIMARY KEY,\n        option_value TEXT\n    )\",
+    \"CREATE TABLE IF NOT EXISTS yourls_log (\n        click_id INTEGER PRIMARY KEY AUTOINCREMENT,\n        keyword VARCHAR(200) NOT NULL,\n        ip VARCHAR(45),\n        click_time DATETIME,\n        referrer TEXT,\n        user_agent TEXT,\n        country_code CHAR(2)\n    )\"
+];
+
+foreach (\$tables as \$sql) {
+    if (\$db->exec(\$sql) === false) {
+        echo \"SQL Error: \" . \$db->lastErrorMsg() . \"\\n\";
+        exit(1);
+    }
+}
+
+echo \"Database schema created successfully\\n\";
+"
+
+# Activate our plugin
+echo "Activating plugin..."
+php -r "
+\$db = new SQLite3('user/data/yourls.db');
+\$db->exec(\"INSERT OR REPLACE INTO yourls_options (option_name, option_value) VALUES ('active_plugins', 'math-captcha/plugin.php')\");
+echo \"Plugin activated in database\\n\";
+"
+
+# Verify
+sqlite3 user/data/yourls.db ".tables"
 
 # Start PHP server
 echo "Starting PHP server on port 8080..."
@@ -103,9 +133,9 @@ echo ""
 # Test 1: Main page
 echo "Test 1: Main page..."
 if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "200"; then
-    echo "✓ Main page loads"
+    echo "\u2713 Main page loads"
 else
-    echo "✗ Main page failed"
+    echo "\u2717 Main page failed"
     exit 1
 fi
 
@@ -116,9 +146,9 @@ curl -s -c "$TEST_DIR/cookies.txt" -b "$TEST_DIR/cookies.txt" \
     http://localhost:8080/admin/
 
 if grep -q "Math CAPTCHA" "$TEST_DIR/admin.html"; then
-    echo "✓ CAPTCHA field found"
+    echo "\u2713 CAPTCHA field found"
 else
-    echo "⚠ CAPTCHA field not found in admin page (might be on add form)"
+    echo "\u26a0 CAPTCHA field not found in admin page (might be on add form)"
 fi
 
 # Extract CAPTCHA question
@@ -134,13 +164,13 @@ if [ -z "$QUESTION" ]; then
 fi
 
 if [ -z "$QUESTION" ]; then
-    echo "✗ Could not find CAPTCHA question"
+    echo "\u2717 Could not find CAPTCHA question"
     echo "Admin page content:"
     head -50 "$TEST_DIR/admin.html"
     exit 1
 fi
 
-echo "✓ Found CAPTCHA: $QUESTION"
+echo "\u2713 Found CAPTCHA: $QUESTION"
 
 # Calculate answer
 NUM1=$(echo "$QUESTION" | awk '{print $1}')
@@ -160,11 +190,11 @@ RESPONSE=$(curl -s -c "$TEST_DIR/cookies2.txt" -b "$TEST_DIR/cookies.txt" \
     http://localhost:8080/admin/ajax.php)
 
 if echo "$RESPONSE" | grep -q "shorturl"; then
-    echo "✓ URL shortened successfully"
+    echo "\u2713 URL shortened successfully"
     KEYWORD=$(echo "$RESPONSE" | grep -oP '"keyword":"\K[^"]+' || echo "")
     echo "  Keyword: $KEYWORD"
 else
-    echo "✗ URL shortening failed"
+    echo "\u2717 URL shortening failed"
     echo "  Response: $RESPONSE"
     exit 1
 fi
@@ -173,9 +203,9 @@ fi
 echo "Test 4: Verify short URL..."
 FINAL_URL=$(curl -s -L -o /dev/null -w "%{url_effective}" http://localhost:8080/$KEYWORD)
 if echo "$FINAL_URL" | grep -q "github.com/MarcProe/simple-antispam"; then
-    echo "✓ Short URL redirects correctly"
+    echo "\u2713 Short URL redirects correctly"
 else
-    echo "✗ Short URL redirect failed"
+    echo "\u2717 Short URL redirect failed"
     echo "  Got: $FINAL_URL"
     exit 1
 fi
@@ -196,9 +226,9 @@ RESPONSE=$(curl -s -c "$TEST_DIR/cookies4.txt" -b "$TEST_DIR/cookies3.txt" \
     http://localhost:8080/admin/ajax.php)
 
 if echo "$RESPONSE" | grep -q "error:captcha_wrong"; then
-    echo "✓ Wrong CAPTCHA rejected"
+    echo "\u2713 Wrong CAPTCHA rejected"
 else
-    echo "✗ Wrong CAPTCHA not rejected"
+    echo "\u2717 Wrong CAPTCHA not rejected"
     echo "  Response: $RESPONSE"
     exit 1
 fi
@@ -218,9 +248,9 @@ RESPONSE=$(curl -s -c "$TEST_DIR/cookies6.txt" -b "$TEST_DIR/cookies5.txt" \
     http://localhost:8080/admin/ajax.php)
 
 if echo "$RESPONSE" | grep -q "error:captcha_missing"; then
-    echo "✓ Missing CAPTCHA rejected"
+    echo "\u2713 Missing CAPTCHA rejected"
 else
-    echo "✗ Missing CAPTCHA not rejected"
+    echo "\u2717 Missing CAPTCHA not rejected"
     echo "  Response: $RESPONSE"
     exit 1
 fi
