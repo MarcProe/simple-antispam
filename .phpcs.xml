@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="simple-antispam">
+    <description>PHP_CodeSniffer ruleset for Math CAPTCHA plugin</description>
+
+    <file>plugin.php</file>
+
+    <rule ref="PSR12" />
+
+    <!-- Allow short open tags and mixed HTML/PHP typical in YOURLS plugins -->
+    <rule ref="PSR12.Files.FileHeader">
+        <exclude name="PSR12.Files.FileHeader.SpacingAfterBlock" />
+    </rule>
+</ruleset>
