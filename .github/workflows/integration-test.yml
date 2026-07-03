@@ -99,17 +99,25 @@ jobs:
           touch /tmp/yourls-test/data/yourls.db
           chmod 777 /tmp/yourls-test/data/yourls.db
           
-          # Find the SQL schema file
-          SQL_FILE=$(find /tmp/yourls-test -name "yourls.sql" -o -name "schema.sql" | head -1)
+          # Find the SQL schema file - try multiple locations
+          SQL_FILE=""
+          for pattern in "sql/yourls.sql" "sql/schema.sql" "sql/install.sql" "includes/install.sql"; do
+            found=$(find /tmp/yourls-test -path "*/$pattern" | head -1)
+            if [ -n "$found" ]; then
+              SQL_FILE="$found"
+              break
+            fi
+          done
           
+          # If not found, try any .sql file
           if [ -z "$SQL_FILE" ]; then
-            echo "SQL file not found, trying to find any .sql file..."
             SQL_FILE=$(find /tmp/yourls-test -name "*.sql" | head -1)
           fi
           
           if [ -z "$SQL_FILE" ]; then
             echo "ERROR: No SQL schema file found in YOURLS"
-            ls -la /tmp/yourls-test/
+            echo "Directory structure:"
+            find /tmp/yourls-test -type f -name "*.php" | head -20
             exit 1
           fi
           
