@@ -136,7 +136,12 @@ jobs:
       - name: Start PHP web server
         run: |
           cd /tmp/yourls-test
-          php -S localhost:8080 -t /tmp/yourls-test > /tmp/php-server.log 2>&1 &
+          # Create a router file that includes index.php for all requests
+          cat > /tmp/yourls-test/router.php << 'EOF'
+          <?php
+          require __DIR__ . '/index.php';
+          EOF
+          php -S localhost:8080 -t /tmp/yourls-test /tmp/yourls-test/router.php > /tmp/php-server.log 2>&1 &
           echo $! > /tmp/php-server.pid
           
           # Wait for server
