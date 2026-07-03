@@ -11,7 +11,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,10 +29,23 @@ jobs:
       - name: Run unit tests
         run: vendor/bin/phpunit tests/MathCaptchaTest.php
 
+      - name: Run standalone integration checks
+        run: |
+          output=$(php tests/integration/IntegrationTest.php)
+          echo "$output"
+          # Guard against the script dying silently before any test runs
+          echo "$output" | grep -q "Failed: 0" || exit 1
+
   integration-test:
     name: Integration Test
     runs-on: ubuntu-latest
-    
+
+    env:
+      YOURLS_VERSION: '1.9.2'
+      YOURLS_DIR: /tmp/yourls-test
+      ADMIN_USER: test-admin
+      ADMIN_PASS: test-password
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,207 +54,169 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: sqlite, pdo_sqlite, mbstring, gd, curl
+          extensions: mbstring, mysqli, pdo_mysql, gd, curl
           coverage: none
+
+      - name: Start MySQL
+        run: |
+          # MySQL comes preinstalled on ubuntu-latest runners (root/root)
+          sudo systemctl start mysql.service
+          mysql -uroot -proot -e "CREATE DATABASE yourls;"
 
       - name: Install YOURLS
         run: |
-          # Download YOURLS
-          wget -q https://github.com/YOURLS/YOURLS/archive/refs/tags/1.9.2.tar.gz -O /tmp/yourls.tar.gz
+          wget -q "https://github.com/YOURLS/YOURLS/archive/refs/tags/${YOURLS_VERSION}.tar.gz" -O /tmp/yourls.tar.gz
           tar -xzf /tmp/yourls.tar.gz -C /tmp/
-          mv /tmp/YOURLS-1.9.2 /tmp/yourls
-          
-          # Create test directory
-          mkdir -p /tmp/yourls-test
-          cp -r /tmp/yourls/* /tmp/yourls-test/
-          
-          # Create user directory structure
-          mkdir -p /tmp/yourls-test/user
-          mkdir -p /tmp/yourls-test/user/plugins
-          mkdir -p /tmp/yourls-test/data
-          
-          # Copy our plugin
-          cp -r ${GITHUB_WORKSPACE} /tmp/yourls-test/user/plugins/math-captcha
-          
+          mv "/tmp/YOURLS-${YOURLS_VERSION}" "${YOURLS_DIR}"
+
+          # Install this plugin
+          mkdir -p "${YOURLS_DIR}/user/plugins"
+          cp -r "${GITHUB_WORKSPACE}" "${YOURLS_DIR}/user/plugins/math-captcha"
+
           echo "YOURLS prepared"
 
-      - name: Create YOURLS config for SQLite
+      - name: Create YOURLS config
         run: |
-          cat > /tmp/yourls-test/user/config.php << 'EOF'
+          cat > "${YOURLS_DIR}/user/config.php" << EOF
           <?php
-          /**
-           * YOURLS configuration for testing
-           */
-          
-          define( 'YOURLS_DB_DRIVER', 'sqlite' );
-          define( 'YOURLS_DB_FILE', '/tmp/yourls-test/data/yourls.db' );
+          /* YOURLS configuration for integration testing */
+          define( 'YOURLS_DB_USER', 'root' );
+          define( 'YOURLS_DB_PASS', 'root' );
+          define( 'YOURLS_DB_NAME', 'yourls' );
+          define( 'YOURLS_DB_HOST', '127.0.0.1' );
+          define( 'YOURLS_DB_PREFIX', 'yourls_' );
           define( 'YOURLS_SITE', 'http://localhost:8080' );
           define( 'YOURLS_HOURS_OFFSET', 0 );
+          define( 'YOURLS_LANG', '' );
           define( 'YOURLS_UNIQUE_URLS', true );
-          define( 'YOURLS_PRIVATE', false );
-          define( 'YOURLS_COOKIEKEY', 'test_key_' . md5(time()) );
-          define( 'YOURLS_DEBUG', false );
-          define( 'YOURLS_VERSION', '1.9.2' );
-          define( 'YOURLS_ABSPATH', dirname( __FILE__ ).'/' );
-          define( 'YOURLS_DB_USER', '' );
-          define( 'YOURLS_DB_PASS', '' );
-          define( 'YOURLS_DB_NAME', '' );
-          define( 'YOURLS_DB_HOST', '' );
-          
+          define( 'YOURLS_PRIVATE', true );
+          define( 'YOURLS_COOKIEKEY', 'integration-test-cookie-key' );
+          define( 'YOURLS_NO_HASH_PASSWORD', true );
+          define( 'YOURLS_DEBUG', true );
+          define( 'YOURLS_URL_CONVERT', 36 );
+          \$yourls_user_passwords = [ '${ADMIN_USER}' => '${ADMIN_PASS}' ];
+          \$yourls_reserved_URL = [ 'admin' ];
           date_default_timezone_set( 'UTC' );
           EOF
 
-      - name: Initialize SQLite database
+      - name: Install YOURLS database and activate plugin
         run: |
-          cd /tmp/yourls-test
-          
-          # Create database
-          touch /tmp/yourls-test/data/yourls.db
-          chmod 777 /tmp/yourls-test/data/yourls.db
-          
-          # YOURLS 1.9.2 doesn't include a separate SQL file in the tarball
-          # The schema is embedded in the installer. We'll create it manually.
-          # This is the standard YOURLS schema for SQLite
-          
-          php -r "
-          \$db = new SQLite3('/tmp/yourls-test/data/yourls.db');
-          
-          // Create the tables manually based on YOURLS schema
-          \$tables = [
-              \"CREATE TABLE IF NOT EXISTS yourls_url (\n                keyword VARCHAR(200) PRIMARY KEY,\n                url TEXT NOT NULL,\n                title TEXT,\n                timestamp DATETIME,\n                ip VARCHAR(45),\n                clicks MEDIUMINT UNSIGNED DEFAULT 0\n            )\",
-              \"CREATE TABLE IF NOT EXISTS yourls_options (\n                option_name VARCHAR(255) PRIMARY KEY,\n                option_value TEXT\n            )\",
-              \"CREATE TABLE IF NOT EXISTS yourls_log (\n                click_id INTEGER PRIMARY KEY AUTOINCREMENT,\n                keyword VARCHAR(200) NOT NULL,\n                ip VARCHAR(45),\n                click_time DATETIME,\n                referrer TEXT,\n                user_agent TEXT,\n                country_code CHAR(2)\n            )\"
-          ];
-          
-          foreach (\$tables as \$sql) {
-              if (\$db->exec(\$sql) === false) {
-                  echo \"SQL Error: \" . \$db->lastErrorMsg() . \"\\n\";
-                  exit(1);
-              }
+          cat > /tmp/install-yourls.php << 'EOF'
+          <?php
+          define( 'YOURLS_INSTALLING', true );
+          require '/tmp/yourls-test/includes/load-yourls.php';
+          require_once YOURLS_INC . '/functions-install.php';
+
+          $result = yourls_create_sql_tables();
+          print_r( $result );
+          if ( ! empty( $result['error'] ) ) {
+              exit( 1 );
           }
-          
-          echo \"Database schema created successfully\\n\";
-          "
-          
-          # Activate our plugin
-          php -r "
-          \$db = new SQLite3('/tmp/yourls-test/data/yourls.db');
-          \$db->exec(\"INSERT OR REPLACE INTO yourls_options (option_name, option_value) VALUES ('active_plugins', 'math-captcha/plugin.php')\");
-          echo \"Plugin activated in database\\n\";
-          "
-          
+
+          yourls_update_option( 'active_plugins', array( 'math-captcha/plugin.php' ) );
+          echo "Plugin activated\n";
+          EOF
+          php /tmp/install-yourls.php
+
           # Verify
-          sqlite3 /tmp/yourls-test/data/yourls.db ".tables"
+          mysql -uroot -proot yourls -e "SHOW TABLES; SELECT option_name, option_value FROM yourls_options;"
 
       - name: Start PHP web server
         run: |
-          cd /tmp/yourls-test
-          # Create a router file that includes index.php for all requests
-          cat > /tmp/yourls-test/router.php << 'EOF'
+          # PHP's built-in server has no .htaccess support; emulate the YOURLS
+          # rewrite rules: serve real files/dirs, send the rest to yourls-loader.php
+          cat > "${YOURLS_DIR}/router.php" << 'EOF'
           <?php
-          require __DIR__ . '/index.php';
+          $path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+          if ( $path !== '/' && file_exists( __DIR__ . $path ) ) {
+              return false;
+          }
+          require __DIR__ . '/yourls-loader.php';
           EOF
-          php -S localhost:8080 -t /tmp/yourls-test /tmp/yourls-test/router.php > /tmp/php-server.log 2>&1 &
+
+          php -S localhost:8080 -t "${YOURLS_DIR}" "${YOURLS_DIR}/router.php" > /tmp/php-server.log 2>&1 &
           echo $! > /tmp/php-server.pid
-          
-          # Wait for server
+
           for i in {1..15}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "200"; then
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin/ || true)
+            if [ "$code" = "200" ]; then
               echo "Server is running"
-              break
+              exit 0
             fi
+            echo "waiting (last status: $code)..."
             sleep 1
-            echo -n "."
           done
 
-      - name: Test main page
-        run: |
-          curl -s -o /tmp/index.html -w "%{http_code}" http://localhost:8080
-          echo ""
-          grep -q "YOURLS" /tmp/index.html && echo "Main page loads" || exit 1
+          echo "Server did not come up"
+          tail -50 /tmp/php-server.log
+          exit 1
 
-      - name: Get admin page and extract CAPTCHA
+      - name: Test admin page loads
+        run: |
+          curl -s -o /tmp/admin-anon.html http://localhost:8080/admin/
+          grep -qi "YOURLS" /tmp/admin-anon.html && echo "Admin page loads" || { head -50 /tmp/admin-anon.html; exit 1; }
+
+      - name: Log in and extract CAPTCHA question and nonce
         id: captcha
         run: |
-          # Get admin page with session
-          curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+          curl -s -c /tmp/cookies.txt \
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
             -o /tmp/admin.html \
             http://localhost:8080/admin/
-          
-          # Look for CAPTCHA in the HTML
-          question=$(grep -oP '<span id="math-captcha-question">\s*\K[0-9]+ \+ [0-9]+' /tmp/admin.html || echo "")
-          
+
+          question=$(grep -oP '<span id="math-captcha-question">\s*\K[0-9]+ \+ [0-9]+' /tmp/admin.html || true)
+          nonce=$(grep -oP '<input[^>]*nonce-add[^>]*>' /tmp/admin.html | grep -oP 'value="\K[^"]+' | head -1 || true)
+
           if [ -z "$question" ]; then
-            echo "CAPTCHA not found in admin page, trying admin/index.php..."
-            curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
-              -o /tmp/addnew.html \
-              http://localhost:8080/admin/index.php
-            
-            question=$(grep -oP '<span id="math-captcha-question">\s*\K[0-9]+ \+ [0-9]+' /tmp/addnew.html || echo "")
-          fi
-          
-          if [ -z "$question" ]; then
-            echo "Could not find CAPTCHA question"
-            echo "Admin page content (first 50 lines):"
-            head -50 /tmp/admin.html
+            echo "Could not find CAPTCHA question - is the plugin active?"
+            echo "--- Admin page (first 80 lines) ---"
+            head -80 /tmp/admin.html
             exit 1
           fi
-          
-          echo "Found CAPTCHA: $question"
-          
-          # Calculate answer
+
+          if [ -z "$nonce" ]; then
+            echo "Could not find add-url nonce"
+            grep -i "nonce" /tmp/admin.html || true
+            exit 1
+          fi
+
           num1=$(echo "$question" | awk '{print $1}')
           num2=$(echo "$question" | awk '{print $3}')
           answer=$((num1 + num2))
-          
-          echo "Answer: $answer"
-          echo "answer=$answer" >> $GITHUB_OUTPUT
 
-      - name: Submit URL with CAPTCHA
-        id: submit
+          echo "Found CAPTCHA: $question (answer: $answer)"
+          echo "answer=$answer" >> "$GITHUB_OUTPUT"
+          echo "nonce=$nonce" >> "$GITHUB_OUTPUT"
+
+      - name: Submit URL with correct CAPTCHA
         run: |
-          answer=${{ steps.captcha.outputs.answer }}
-          
-          echo "Submitting with answer: $answer"
-          
-          response=$(curl -s -c /tmp/cookies2.txt -b /tmp/cookies.txt \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-Requested-With: XMLHttpRequest" \
+          response=$(curl -s -b /tmp/cookies.txt -c /tmp/cookies.txt \
+            --data-urlencode "action=add" \
+            --data-urlencode "nonce=${{ steps.captcha.outputs.nonce }}" \
             --data-urlencode "url=https://github.com/MarcProe/simple-antispam" \
             --data-urlencode "keyword=test123" \
-            --data-urlencode "title=Test+URL" \
-            --data-urlencode "math_captcha_answer=$answer" \
-            http://localhost:8080/admin/ajax.php)
-          
+            --data-urlencode "title=Test URL" \
+            --data-urlencode "math_captcha_answer=${{ steps.captcha.outputs.answer }}" \
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
+            http://localhost:8080/admin/admin-ajax.php)
+
           echo "Response: $response"
-          
-          if echo "$response" | grep -q "shorturl"; then
+
+          if echo "$response" | grep -q '"status":"success"'; then
             echo "URL shortened successfully"
-            keyword=$(echo "$response" | grep -oP '"keyword":"\K[^"]+' || echo "")
-            echo "keyword=$keyword" >> $GITHUB_OUTPUT
-          elif echo "$response" | grep -q "error:captcha"; then
-            echo "CAPTCHA verification failed"
-            exit 1
           else
-            echo "Unexpected response"
+            echo "Expected successful add"
             exit 1
           fi
 
-      - name: Verify short URL
+      - name: Verify short URL redirect
         run: |
-          keyword=${{ steps.submit.outputs.keyword }}
-          
-          if [ -z "$keyword" ]; then
-            echo "No keyword returned"
-            exit 1
-          fi
-          
-          echo "Testing short URL: http://localhost:8080/$keyword"
-          
-          final_url=$(curl -s -L -o /dev/null -w "%{url_effective}" http://localhost:8080/$keyword)
-          echo "Redirected to: $final_url"
-          
-          if echo "$final_url" | grep -q "github.com/MarcProe/simple-antispam"; then
+          redirect=$(curl -s -o /dev/null -w "%{redirect_url}" http://localhost:8080/test123)
+          echo "Short URL redirects to: $redirect"
+
+          if echo "$redirect" | grep -q "github.com/MarcProe/simple-antispam"; then
             echo "Short URL works correctly"
           else
             echo "Short URL redirect failed"
@@ -250,24 +225,29 @@ jobs:
 
       - name: Test wrong CAPTCHA
         run: |
-          echo "Testing wrong CAPTCHA..."
-          
-          # Get fresh session
-          curl -s -c /tmp/cookies3.txt -b /tmp/cookies3.txt \
-            -o /dev/null \
+          # Fresh session: fetching the admin page generates a new question
+          curl -s -c /tmp/cookies-wrong.txt \
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
+            -o /tmp/admin-wrong.html \
             http://localhost:8080/admin/
-          
-          response=$(curl -s -c /tmp/cookies4.txt -b /tmp/cookies3.txt \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-Requested-With: XMLHttpRequest" \
+
+          nonce=$(grep -oP '<input[^>]*nonce-add[^>]*>' /tmp/admin-wrong.html | grep -oP 'value="\K[^"]+' | head -1)
+
+          # 99999 can never be correct: operands are 1-99, so the max answer is 198
+          response=$(curl -s -b /tmp/cookies-wrong.txt \
+            --data-urlencode "action=add" \
+            --data-urlencode "nonce=$nonce" \
             --data-urlencode "url=https://example.com/wrong" \
-            --data-urlencode "keyword=wrong" \
+            --data-urlencode "keyword=wrongkw" \
             --data-urlencode "title=Wrong" \
             --data-urlencode "math_captcha_answer=99999" \
-            http://localhost:8080/admin/ajax.php)
-          
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
+            http://localhost:8080/admin/admin-ajax.php)
+
           echo "Response: $response"
-          
+
           if echo "$response" | grep -q "error:captcha_wrong"; then
             echo "Wrong CAPTCHA rejected"
           else
@@ -277,23 +257,26 @@ jobs:
 
       - name: Test missing CAPTCHA
         run: |
-          echo "Testing missing CAPTCHA..."
-          
-          # Get fresh session
-          curl -s -c /tmp/cookies5.txt -b /tmp/cookies5.txt \
-            -o /dev/null \
+          curl -s -c /tmp/cookies-missing.txt \
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
+            -o /tmp/admin-missing.html \
             http://localhost:8080/admin/
-          
-          response=$(curl -s -c /tmp/cookies6.txt -b /tmp/cookies5.txt \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-Requested-With: XMLHttpRequest" \
+
+          nonce=$(grep -oP '<input[^>]*nonce-add[^>]*>' /tmp/admin-missing.html | grep -oP 'value="\K[^"]+' | head -1)
+
+          response=$(curl -s -b /tmp/cookies-missing.txt \
+            --data-urlencode "action=add" \
+            --data-urlencode "nonce=$nonce" \
             --data-urlencode "url=https://example.com/missing" \
-            --data-urlencode "keyword=missing" \
+            --data-urlencode "keyword=missingkw" \
             --data-urlencode "title=Missing" \
-            http://localhost:8080/admin/ajax.php)
-          
+            --data-urlencode "username=${ADMIN_USER}" \
+            --data-urlencode "password=${ADMIN_PASS}" \
+            http://localhost:8080/admin/admin-ajax.php)
+
           echo "Response: $response"
-          
+
           if echo "$response" | grep -q "error:captcha_missing"; then
             echo "Missing CAPTCHA rejected"
           else
@@ -312,7 +295,8 @@ jobs:
         if: failure()
         run: |
           echo "=== Server Logs ==="
-          tail -50 /tmp/php-server.log || true
-          
+          tail -100 /tmp/php-server.log || true
+
           echo "=== Database ==="
-          sqlite3 /tmp/yourls-test/data/yourls.db ".tables" || true
+          mysql -uroot -proot yourls -e "SHOW TABLES;" || true
+          mysql -uroot -proot yourls -e "SELECT option_name, option_value FROM yourls_options;" || true

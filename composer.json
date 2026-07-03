@@ -12,6 +12,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "integration-test": "php tests/integration/IntegrationTest.php",
         "lint": "phpcs"
     },
     "license": "MIT",

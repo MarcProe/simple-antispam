@@ -1,115 +1,82 @@
 # Integration Tests
 
-This directory contains integration tests for the Math CAPTCHA plugin that test the plugin with a real YOURLS installation.
+This directory contains integration tests for the Math CAPTCHA plugin that
+test the plugin with a real YOURLS installation.
+
+YOURLS only supports MySQL/MariaDB (there is no SQLite support in core), so
+all real-installation tests run against MySQL. See
+[`INTEGRATION_TESTING.md`](../../INTEGRATION_TESTING.md) in the repository
+root for the full documentation; this is the short version.
 
 ## Test Options
 
 ### 1. GitHub Actions Workflow (Recommended)
 
-The repository includes a GitHub Actions workflow at `.github/workflows/integration-test.yml` that:
+`.github/workflows/integration-test.yml`:
 
-- Sets up PHP with SQLite support
-- Downloads and installs YOURLS
-- Installs the plugin
-- Starts PHP's built-in web server
-- Uses curl to automate form submissions
+- Starts the MySQL server preinstalled on the `ubuntu-latest` runner
+- Downloads YOURLS 1.9.2, installs it with YOURLS' own installer functions,
+  and activates the plugin
+- Serves YOURLS with PHP's built-in web server plus a router script that
+  emulates the `.htaccess` rewrite rules (`yourls-loader.php`)
+- Uses curl to log in, scrape the CAPTCHA question and `add_url` nonce, and
+  submit `action=add` to `admin/admin-ajax.php`
 - Tests:
   - CAPTCHA field appears on the form
   - Correct CAPTCHA answer allows URL shortening
-  - Wrong CAPTCHA answer is rejected
-  - Missing CAPTCHA answer is rejected
-  - Short URLs work correctly
+  - The short URL redirects correctly
+  - Wrong CAPTCHA answer is rejected (`error:captcha_wrong`)
+  - Missing CAPTCHA answer is rejected (`error:captcha_missing`)
 
-**No external services are required** - everything runs in the GitHub Actions runner using:
-- PHP's built-in SQLite database
-- PHP's built-in web server
-- curl for HTTP requests
+Runs on pushes and pull requests to `main`, or manually via
+`workflow_dispatch`.
 
-### 2. Local Testing with Docker
+### 2. Local Testing
 
-For local testing, you can use Docker:
+`test-local.sh` mirrors the CI flow on your machine. It needs PHP 8.x with
+`pdo_mysql`, a running MySQL server, the `mysql` CLI, `curl`, and `wget`:
 
 ```bash
-# Build and run the test environment
-docker-compose -f tests/integration/docker-compose.yml up --build
+# Defaults: MySQL at 127.0.0.1 with root/root, port 8080
+./test-local.sh
+
+# Custom settings
+MYSQL_USER=me MYSQL_PASS=secret PORT=8888 ./test-local.sh
 ```
 
-This will:
-- Set up a container with PHP and SQLite
-- Install YOURLS
-- Install the plugin
-- Run the integration tests
+It creates and afterwards drops a scratch database (`yourls_captcha_test`).
 
-### 3. Manual Local Testing
+### 3. Standalone PHP Checks
 
-To test manually on your local machine:
+`IntegrationTest.php` runs unit-style checks against the mocked YOURLS API
+from `tests/bootstrap.php` — no server or database required. It is executed
+in CI as part of the *Unit Tests* job.
 
 ```bash
-# Navigate to the integration test directory
-cd tests/integration
-
-# Run the integration test script
 php IntegrationTest.php
+# or, from the repository root
+composer run integration-test
 ```
 
-This runs unit-style tests that verify the plugin functions work correctly with mocked YOURLS functions.
+### 4. Docker (manual, interactive)
 
-## Requirements
+`docker-compose.yml` starts the official `yourls` image plus MySQL with this
+plugin mounted:
 
-- PHP 7.1+ (8.2 recommended)
-- PHP extensions: sqlite, pdo_sqlite, mbstring, gd, curl
-- Composer (for dependencies)
-- curl (for HTTP requests in GitHub Actions)
-- SQLite3 CLI (for database initialization)
+```bash
+docker compose up -d
+# open http://localhost:8080/admin/  (login: admin / password)
+```
 
-## How It Works
-
-### GitHub Actions Flow:
-
-1. **Setup**: Install PHP with required extensions
-2. **Install YOURLS**: Download YOURLS 1.9.2 and extract it
-3. **Configure**: Create a SQLite-based config file
-4. **Initialize DB**: Load YOURLS schema into SQLite
-5. **Install Plugin**: Copy plugin files to YOURLS user/plugins/ directory
-6. **Start Server**: Launch PHP's built-in web server on port 8080
-7. **Test CAPTCHA**: 
-   - Load admin page
-   - Extract CAPTCHA question from HTML
-   - Calculate correct answer
-   - Submit form with answer
-   - Verify URL was shortened
-8. **Test Validation**:
-   - Submit with wrong answer (should fail)
-   - Submit without answer (should fail)
-9. **Verify**: Check that short URL redirects correctly
-
-### Key Features:
-
-- **No external services**: Uses SQLite (file-based) and PHP's built-in server
-- **Free**: All components are open source and free
-- **Automated**: Full end-to-end test without manual intervention
-- **Reliable**: Tests the actual web interface, not just PHP functions
+Complete the YOURLS install screen on first run, then activate
+"Math CAPTCHA" on the *Plugins* page.
 
 ## Troubleshooting
 
-### If tests fail in GitHub Actions:
-
-1. Check the workflow logs for errors
-2. Look at the server logs (displayed in the failure output)
-3. Verify the database was created correctly
-4. Check that the plugin files are in the correct location
-
-### Common Issues:
-
-- **SQLite permissions**: Ensure the data directory is writable
-- **Port conflicts**: PHP server uses port 8080
-- **Session issues**: Cookies must be preserved between requests
-- **YOURLS version**: Tested with YOURLS 1.9.2
-
-## Customization
-
-You can customize the test by modifying:
-
-- `integration-test.yml`: Change PHP version, YOURLS version, test parameters
-- `IntegrationTest.php`: Add more test cases or modify existing ones
-- Create a `docker-compose.yml` for local Docker-based testing
+- **CAPTCHA question not found**: `active_plugins` in `yourls_options` must be
+  a PHP-serialized array — activate via `yourls_update_option()`, not a raw
+  SQL string insert
+- **Nonce errors**: the nonce is tied to the logged-in user; use the same
+  credentials for the page fetch and the AJAX submit
+- **Correct answer rejected**: the expected answer lives in the PHP session;
+  share the curl cookie jar (`-b`/`-c`) between requests

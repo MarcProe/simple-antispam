@@ -1,33 +1,42 @@
-version: '3.8'
+# Manual test environment: real YOURLS + MySQL with the Math CAPTCHA plugin
+# mounted. Bring it up, then finish the YOURLS install and activate the
+# plugin in the browser:
+#
+#   docker compose up -d
+#   open http://localhost:8080/admin/   (login: admin / password)
+#
+# On first run YOURLS asks you to install; afterwards activate
+# "Math CAPTCHA" on the Plugins page. The plugin directory is the live
+# repository checkout, so code changes are visible on reload.
 
 services:
-  yourls-test:
-    image: php:8.2-apache
-    container_name: yourls-math-captcha-test
-    ports:
-      - "8080:80"
-    volumes:
-      - ./docker-setup.php:/var/www/html/docker-setup.php
-      - ../../:/var/www/html/user/plugins/math-captcha
-      - yourls-data:/var/www/html/user/data
+  mysql:
+    image: mysql:8.0
+    container_name: yourls-captcha-mysql
     environment:
-      - APACHE_DOCUMENT_ROOT=/var/www/html
-    command: ["/bin/sh", "-c", "chown -R www-data:www-data /var/www/html/user/data && a2enmod rewrite && apache2-foreground"]
+      MYSQL_ROOT_PASSWORD: yourlspass
+      MYSQL_DATABASE: yourls
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pyourlspass"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  tester:
-    image: curlimages/curl:latest
-    container_name: yourls-tester
-    depends_on:
-      yourls-test:
-        condition: service_healthy
-    command: ["/bin/sh", "-c", "sleep 5 && curl -s http://yourls-test/docker-setup.php && sleep 2 && curl -s http://yourls-test/admin/"]
+  yourls:
+    image: yourls:1.9.2
+    container_name: yourls-math-captcha-test
+    ports:
+      - "8080:80"
+    environment:
+      YOURLS_DB_HOST: mysql
+      YOURLS_DB_USER: root
+      YOURLS_DB_PASS: yourlspass
+      YOURLS_DB_NAME: yourls
+      YOURLS_SITE: http://localhost:8080
+      YOURLS_USER: admin
+      YOURLS_PASS: password
     volumes:
-      - ./test-script.sh:/test-script.sh
-
-volumes:
-  yourls-data:
+      - ../../:/var/www/html/user/plugins/math-captcha
+    depends_on:
+      mysql:
+        condition: service_healthy
