@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '25 6 * * 3'
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   codacy-security-scan:
     name: Codacy Security Scan
@@ -24,7 +28,7 @@ jobs:
           max-allowed-issues: 2147483647
 
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         continue-on-error: true
         with:
           sarif_file: results.sarif
