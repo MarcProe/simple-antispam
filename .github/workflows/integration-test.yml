@@ -1,0 +1,295 @@
+name: Integration Test - Math CAPTCHA Plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-progress
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit tests/
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: sqlite, pdo_sqlite, mbstring, gd, curl
+          coverage: none
+
+      - name: Install YOURLS
+        run: |
+          # Download YOURLS
+          wget -q https://github.com/YOURLS/YOURLS/archive/refs/tags/1.9.2.tar.gz -O /tmp/yourls.tar.gz
+          tar -xzf /tmp/yourls.tar.gz -C /tmp/
+          mv /tmp/YOURLS-1.9.2 /tmp/yourls
+          
+          # Create test directory
+          mkdir -p /tmp/yourls-test
+          cp -r /tmp/yourls/* /tmp/yourls-test/
+          
+          # Create user directory structure
+          mkdir -p /tmp/yourls-test/user
+          mkdir -p /tmp/yourls-test/user/plugins
+          mkdir -p /tmp/yourls-test/data
+          
+          # Copy our plugin (the whole repo)
+          cp -r ${GITHUB_WORKSPACE} /tmp/yourls-test/user/plugins/math-captcha
+          
+          # Create the plugin entry point that YOURLS expects
+          # YOURLS loads plugin.php from each plugin directory
+          # Our plugin.php is already there
+          
+          echo "YOURLS prepared"
+
+      - name: Create YOURLS config for SQLite
+        run: |
+          cat > /tmp/yourls-test/user/config.php << 'EOF'
+          <?php
+          /**
+           * YOURLS configuration for testing
+           */
+          
+          define( 'YOURLS_DB_DRIVER', 'sqlite' );
+          define( 'YOURLS_DB_FILE', '/tmp/yourls-test/data/yourls.db' );
+          define( 'YOURLS_SITE', 'http://localhost:8080' );
+          define( 'YOURLS_HOURS_OFFSET', 0 );
+          define( 'YOURLS_UNIQUE_URLS', true );
+          define( 'YOURLS_PRIVATE', false );
+          define( 'YOURLS_COOKIEKEY', 'test_key_' . md5(time()) );
+          define( 'YOURLS_DEBUG', false );
+          define( 'YOURLS_VERSION', '1.9.2' );
+          define( 'YOURLS_ABSPATH', dirname( __FILE__ ).'/' );
+          define( 'YOURLS_DB_USER', '' );
+          define( 'YOURLS_DB_PASS', '' );
+          define( 'YOURLS_DB_NAME', '' );
+          define( 'YOURLS_DB_HOST', '' );
+          
+          date_default_timezone_set( 'UTC' );
+          EOF
+
+      - name: Initialize SQLite database
+        run: |
+          cd /tmp/yourls-test
+          
+          # Create database
+          touch /tmp/yourls-test/data/yourls.db
+          chmod 777 /tmp/yourls-test/data/yourls.db
+          
+          # Load schema
+          sqlite3 /tmp/yourls-test/data/yourls.db < /tmp/yourls-test/sql/yourls.sql
+          
+          # Activate our plugin
+          sqlite3 /tmp/yourls-test/data/yourls.db \
+            "INSERT OR REPLACE INTO yourls_options (option_name, option_value) \
+             VALUES ('active_plugins', 'math-captcha/plugin.php');"
+          
+          # Verify
+          sqlite3 /tmp/yourls-test/data/yourls.db ".tables"
+
+      - name: Start PHP web server
+        run: |
+          cd /tmp/yourls-test
+          php -S localhost:8080 -t /tmp/yourls-test > /tmp/php-server.log 2>&1 &
+          echo $! > /tmp/php-server.pid
+          
+          # Wait for server
+          for i in {1..15}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 | grep -q "200"; then
+              echo "Server running"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Test main page
+        run: |
+          curl -s -o /tmp/index.html -w "%{http_code}" http://localhost:8080
+          echo ""
+          grep -q "YOURLS" /tmp/index.html && echo "✓ Main page loads"
+
+      - name: Get admin page and extract CAPTCHA
+        id: captcha
+        run: |
+          # Get admin page with session
+          curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+            -o /tmp/admin.html \
+            http://localhost:8080/admin/
+          
+          # Look for CAPTCHA in the HTML
+          # The plugin adds: <span id="math-captcha-question"> X + Y </span>
+          question=$(grep -oP '<span id="math-captcha-question">\s*\K[0-9]+ \+ [0-9]+' /tmp/admin.html || echo "")
+          
+          if [ -z "$question" ]; then
+            echo "CAPTCHA not found in admin page, checking index.php..."
+            curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+              -o /tmp/index2.html \
+              http://localhost:8080/admin/index.php
+            
+            question=$(grep -oP '<span id="math-captcha-question">\s*\K[0-9]+ \+ [0-9]+' /tmp/index2.html || echo "")
+          fi
+          
+          if [ -z "$question" ]; then
+            echo "✗ Could not find CAPTCHA question"
+            echo "Admin page content (first 50 lines):"
+            head -50 /tmp/admin.html
+            exit 1
+          fi
+          
+          echo "✓ Found CAPTCHA: $question"
+          
+          # Calculate answer
+          num1=$(echo "$question" | awk '{print $1}')
+          num2=$(echo "$question" | awk '{print $3}')
+          answer=$((num1 + num2))
+          
+          echo "Answer: $answer"
+          echo "answer=$answer" >> $GITHUB_OUTPUT
+
+      - name: Submit URL with CAPTCHA
+        id: submit
+        run: |
+          answer=${{ steps.captcha.outputs.answer }}
+          
+          echo "Submitting with answer: $answer"
+          
+          response=$(curl -s -c /tmp/cookies2.txt -b /tmp/cookies.txt \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -H "X-Requested-With: XMLHttpRequest" \
+            --data-urlencode "url=https://github.com/MarcProe/simple-antispam" \
+            --data-urlencode "keyword=test123" \
+            --data-urlencode "title=Test+URL" \
+            --data-urlencode "math_captcha_answer=$answer" \
+            http://localhost:8080/admin/ajax.php)
+          
+          echo "Response: $response"
+          
+          if echo "$response" | grep -q "shorturl"; then
+            echo "✓ URL shortened successfully"
+            keyword=$(echo "$response" | grep -oP '"keyword":"\K[^"]+' || echo "")
+            echo "keyword=$keyword" >> $GITHUB_OUTPUT
+          elif echo "$response" | grep -q "error:captcha"; then
+            echo "✗ CAPTCHA verification failed"
+            exit 1
+          else
+            echo "? Unexpected response"
+            exit 1
+          fi
+
+      - name: Verify short URL
+        run: |
+          keyword=${{ steps.submit.outputs.keyword }}
+          
+          if [ -z "$keyword" ]; then
+            echo "✗ No keyword returned"
+            exit 1
+          fi
+          
+          echo "Testing short URL: http://localhost:8080/$keyword"
+          
+          final_url=$(curl -s -L -o /dev/null -w "%{url_effective}" http://localhost:8080/$keyword)
+          echo "Redirected to: $final_url"
+          
+          if echo "$final_url" | grep -q "github.com/MarcProe/simple-antispam"; then
+            echo "✓ Short URL works correctly"
+          else
+            echo "✗ Redirect failed"
+            exit 1
+          fi
+
+      - name: Test wrong CAPTCHA
+        run: |
+          echo "Testing wrong CAPTCHA..."
+          
+          # Get fresh session
+          curl -s -c /tmp/cookies3.txt -b /tmp/cookies3.txt \
+            -o /dev/null \
+            http://localhost:8080/admin/
+          
+          response=$(curl -s -c /tmp/cookies4.txt -b /tmp/cookies3.txt \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -H "X-Requested-With: XMLHttpRequest" \
+            --data-urlencode "url=https://example.com/wrong" \
+            --data-urlencode "keyword=wrong" \
+            --data-urlencode "title=Wrong" \
+            --data-urlencode "math_captcha_answer=99999" \
+            http://localhost:8080/admin/ajax.php)
+          
+          echo "Response: $response"
+          
+          if echo "$response" | grep -q "error:captcha_wrong"; then
+            echo "✓ Wrong CAPTCHA rejected"
+          else
+            echo "✗ Expected CAPTCHA error"
+            exit 1
+          fi
+
+      - name: Test missing CAPTCHA
+        run: |
+          echo "Testing missing CAPTCHA..."
+          
+          # Get fresh session
+          curl -s -c /tmp/cookies5.txt -b /tmp/cookies5.txt \
+            -o /dev/null \
+            http://localhost:8080/admin/
+          
+          response=$(curl -s -c /tmp/cookies6.txt -b /tmp/cookies5.txt \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -H "X-Requested-With: XMLHttpRequest" \
+            --data-urlencode "url=https://example.com/missing" \
+            --data-urlencode "keyword=missing" \
+            --data-urlencode "title=Missing" \
+            http://localhost:8080/admin/ajax.php)
+          
+          echo "Response: $response"
+          
+          if echo "$response" | grep -q "error:captcha_missing"; then
+            echo "✓ Missing CAPTCHA rejected"
+          else
+            echo "✗ Expected missing CAPTCHA error"
+            exit 1
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/php-server.pid ]; then
+            kill $(cat /tmp/php-server.pid) 2>/dev/null || true
+          fi
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Server Logs ==="
+          tail -50 /tmp/php-server.log || true
+          
+          echo "=== Database ==="
+          sqlite3 /tmp/yourls-test/data/yourls.db ".tables" || true
+          sqlite3 /tmp/yourls-test/data/yourls.db "SELECT * FROM yourls_url;" || true

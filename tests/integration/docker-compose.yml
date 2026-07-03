@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  yourls-test:
+    image: php:8.2-apache
+    container_name: yourls-math-captcha-test
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker-setup.php:/var/www/html/docker-setup.php
+      - ../../:/var/www/html/user/plugins/math-captcha
+      - yourls-data:/var/www/html/user/data
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    command: ["/bin/sh", "-c", "chown -R www-data:www-data /var/www/html/user/data && a2enmod rewrite && apache2-foreground"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tester:
+    image: curlimages/curl:latest
+    container_name: yourls-tester
+    depends_on:
+      yourls-test:
+        condition: service_healthy
+    command: ["/bin/sh", "-c", "sleep 5 && curl -s http://yourls-test/docker-setup.php && sleep 2 && curl -s http://yourls-test/admin/"]
+    volumes:
+      - ./test-script.sh:/test-script.sh
+
+volumes:
+  yourls-data:
