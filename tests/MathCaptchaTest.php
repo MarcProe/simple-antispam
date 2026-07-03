@@ -43,7 +43,9 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
     public function testDirectAccessBlocked()
     {
         $plugin_file = file_get_contents(__DIR__ . '/../plugin.php');
-        $this->assertStringContainsString("if ( !defined( 'YOURLS_ABSPATH' ) ) die();", $plugin_file);
+        $this->assertStringContainsString("if (!defined('YOURLS_ABSPATH')) {
+    die();
+}", $plugin_file);
     }
 
     public function testGenerateQuestion()
