@@ -29,7 +29,7 @@ The integration test verifies that the plugin works correctly with a **real YOUR
 5. Creates the YOURLS tables with YOURLS' own installer (`yourls_create_sql_tables()`) and activates the plugin via `yourls_update_option('active_plugins', ...)`
 6. Starts PHP's built-in web server with a router script that emulates the YOURLS `.htaccess` rules (real files are served directly, everything else goes to `yourls-loader.php`)
 7. Uses curl to:
-   - Log in to the admin page (YOURLS accepts `username`/`password` request parameters)
+   - Log in through the CSRF-protected login form (fetch the login page, scrape its nonce, post the credentials with it)
    - Extract the CAPTCHA question and the `add_url` nonce from the HTML
    - Submit `action=add` to `admin/admin-ajax.php` with the correct answer and verify the URL is shortened
    - Verify the short URL redirect (via the `Location` header)
@@ -131,12 +131,13 @@ server preinstalled (`root`/`root`), so no service container is needed.
 
 - `user/config.php` defines a test admin in `$yourls_user_passwords` and sets
   `YOURLS_NO_HASH_PASSWORD` so YOURLS doesn't try to rewrite the config file
-- YOURLS accepts `username` and `password` as request parameters, so curl can
-  authenticate on each request while a cookie jar preserves the PHP session
-  that stores the CAPTCHA answer
+- The login form is CSRF-protected: the tests fetch `/admin/` once to scrape
+  the login nonce, then post `username`/`password`/`nonce`. The resulting
+  auth cookie and the PHP session (which stores the CAPTCHA answer) are kept
+  in a curl cookie jar shared across the subsequent requests
 - Submitting a new URL through `admin/admin-ajax.php` requires `action=add`
-  plus a valid `nonce`, which the tests scrape from the admin page HTML
-  (`id="nonce-add"`)
+  plus a valid `add_url` nonce, which the tests scrape from the admin page
+  HTML (`nonce-add`)
 
 ## Troubleshooting
 

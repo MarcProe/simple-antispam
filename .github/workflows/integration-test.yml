@@ -159,9 +159,21 @@ jobs:
       - name: Log in and extract CAPTCHA question and nonce
         id: captcha
         run: |
-          curl -s -c /tmp/cookies.txt \
+          # The login form is CSRF-protected: fetch it first to get the login
+          # nonce and the session cookie, then post the credentials with it.
+          curl -s -c /tmp/cookies.txt -o /tmp/login.html http://localhost:8080/admin/
+          login_nonce=$(grep -oP '<input[^>]*name="nonce"[^>]*>' /tmp/login.html | grep -oP 'value="\K[^"]+' | head -1)
+          if [ -z "$login_nonce" ]; then
+            echo "Could not find login nonce"
+            head -80 /tmp/login.html
+            exit 1
+          fi
+
+          curl -s -b /tmp/cookies.txt -c /tmp/cookies.txt \
             --data-urlencode "username=${ADMIN_USER}" \
             --data-urlencode "password=${ADMIN_PASS}" \
+            --data-urlencode "nonce=${login_nonce}" \
+            --data-urlencode "submit=submit" \
             -o /tmp/admin.html \
             http://localhost:8080/admin/
 
@@ -198,8 +210,6 @@ jobs:
             --data-urlencode "keyword=test123" \
             --data-urlencode "title=Test URL" \
             --data-urlencode "math_captcha_answer=${{ steps.captcha.outputs.answer }}" \
-            --data-urlencode "username=${ADMIN_USER}" \
-            --data-urlencode "password=${ADMIN_PASS}" \
             http://localhost:8080/admin/admin-ajax.php)
 
           echo "Response: $response"
@@ -225,10 +235,14 @@ jobs:
 
       - name: Test wrong CAPTCHA
         run: |
-          # Fresh session: fetching the admin page generates a new question
-          curl -s -c /tmp/cookies-wrong.txt \
+          # Fresh session: log in again so a new CAPTCHA question is generated
+          curl -s -c /tmp/cookies-wrong.txt -o /tmp/login-wrong.html http://localhost:8080/admin/
+          login_nonce=$(grep -oP '<input[^>]*name="nonce"[^>]*>' /tmp/login-wrong.html | grep -oP 'value="\K[^"]+' | head -1)
+          curl -s -b /tmp/cookies-wrong.txt -c /tmp/cookies-wrong.txt \
             --data-urlencode "username=${ADMIN_USER}" \
             --data-urlencode "password=${ADMIN_PASS}" \
+            --data-urlencode "nonce=${login_nonce}" \
+            --data-urlencode "submit=submit" \
             -o /tmp/admin-wrong.html \
             http://localhost:8080/admin/
 
@@ -242,8 +256,6 @@ jobs:
             --data-urlencode "keyword=wrongkw" \
             --data-urlencode "title=Wrong" \
             --data-urlencode "math_captcha_answer=99999" \
-            --data-urlencode "username=${ADMIN_USER}" \
-            --data-urlencode "password=${ADMIN_PASS}" \
             http://localhost:8080/admin/admin-ajax.php)
 
           echo "Response: $response"
@@ -257,9 +269,13 @@ jobs:
 
       - name: Test missing CAPTCHA
         run: |
-          curl -s -c /tmp/cookies-missing.txt \
+          curl -s -c /tmp/cookies-missing.txt -o /tmp/login-missing.html http://localhost:8080/admin/
+          login_nonce=$(grep -oP '<input[^>]*name="nonce"[^>]*>' /tmp/login-missing.html | grep -oP 'value="\K[^"]+' | head -1)
+          curl -s -b /tmp/cookies-missing.txt -c /tmp/cookies-missing.txt \
             --data-urlencode "username=${ADMIN_USER}" \
             --data-urlencode "password=${ADMIN_PASS}" \
+            --data-urlencode "nonce=${login_nonce}" \
+            --data-urlencode "submit=submit" \
             -o /tmp/admin-missing.html \
             http://localhost:8080/admin/
 
@@ -271,8 +287,6 @@ jobs:
             --data-urlencode "url=https://example.com/missing" \
             --data-urlencode "keyword=missingkw" \
             --data-urlencode "title=Missing" \
-            --data-urlencode "username=${ADMIN_USER}" \
-            --data-urlencode "password=${ADMIN_PASS}" \
             http://localhost:8080/admin/admin-ajax.php)
 
           echo "Response: $response"

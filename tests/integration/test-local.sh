@@ -154,21 +154,27 @@ extract_nonce() {
 }
 
 fetch_admin() {
-    # $1 = cookie jar, $2 = output file. Logs in and returns the admin page.
-    curl -s -c "$1" \
+    # $1 = cookie jar, $2 = output file. Logs in (the login form is
+    # CSRF-protected, so grab its nonce first) and returns the admin page.
+    curl -s -c "$1" -o "$2.login" "${BASE_URL}/admin/"
+    local login_nonce
+    login_nonce=$(grep -oP '<input[^>]*name="nonce"[^>]*>' "$2.login" | grep -oP 'value="\K[^"]+' | head -1)
+    [ -n "$login_nonce" ] || { echo "FAIL: login nonce not found"; exit 1; }
+
+    curl -s -b "$1" -c "$1" \
         --data-urlencode "username=${ADMIN_USER}" \
         --data-urlencode "password=${ADMIN_PASS}" \
+        --data-urlencode "nonce=${login_nonce}" \
+        --data-urlencode "submit=submit" \
         -o "$2" \
         "${BASE_URL}/admin/"
 }
 
 submit_add() {
-    # $1 = cookie jar, remaining args are extra curl form fields
+    # $1 = cookie jar (holds the auth session), remaining args are form fields
     local jar="$1"; shift
     curl -s -b "$jar" \
         --data-urlencode "action=add" \
-        --data-urlencode "username=${ADMIN_USER}" \
-        --data-urlencode "password=${ADMIN_PASS}" \
         "$@" \
         "${BASE_URL}/admin/admin-ajax.php"
 }
