@@ -161,13 +161,17 @@ fetch_admin() {
     login_nonce=$(grep -oP '<input[^>]*name="nonce"[^>]*>' "$2.login" | grep -oP 'value="\K[^"]+' | head -1)
     [ -n "$login_nonce" ] || { echo "FAIL: login nonce not found"; exit 1; }
 
+    # A successful login answers with a redirect and sets the auth cookie;
+    # fetch the admin page with a plain GET afterwards.
     curl -s -b "$1" -c "$1" \
         --data-urlencode "username=${ADMIN_USER}" \
         --data-urlencode "password=${ADMIN_PASS}" \
         --data-urlencode "nonce=${login_nonce}" \
         --data-urlencode "submit=submit" \
-        -o "$2" \
+        -o /dev/null \
         "${BASE_URL}/admin/"
+
+    curl -s -b "$1" -c "$1" -o "$2" "${BASE_URL}/admin/"
 }
 
 submit_add() {

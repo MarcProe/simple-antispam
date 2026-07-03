@@ -169,11 +169,17 @@ jobs:
             exit 1
           fi
 
+          # YOURLS answers a successful login with a redirect; the auth cookie
+          # is in the jar afterwards, so fetch the admin page with a plain GET.
           curl -s -b /tmp/cookies.txt -c /tmp/cookies.txt \
             --data-urlencode "username=${ADMIN_USER}" \
             --data-urlencode "password=${ADMIN_PASS}" \
             --data-urlencode "nonce=${login_nonce}" \
             --data-urlencode "submit=submit" \
+            -o /dev/null \
+            http://localhost:8080/admin/
+
+          curl -s -b /tmp/cookies.txt -c /tmp/cookies.txt \
             -o /tmp/admin.html \
             http://localhost:8080/admin/
 
@@ -243,6 +249,9 @@ jobs:
             --data-urlencode "password=${ADMIN_PASS}" \
             --data-urlencode "nonce=${login_nonce}" \
             --data-urlencode "submit=submit" \
+            -o /dev/null \
+            http://localhost:8080/admin/
+          curl -s -b /tmp/cookies-wrong.txt -c /tmp/cookies-wrong.txt \
             -o /tmp/admin-wrong.html \
             http://localhost:8080/admin/
 
@@ -276,6 +285,9 @@ jobs:
             --data-urlencode "password=${ADMIN_PASS}" \
             --data-urlencode "nonce=${login_nonce}" \
             --data-urlencode "submit=submit" \
+            -o /dev/null \
+            http://localhost:8080/admin/
+          curl -s -b /tmp/cookies-missing.txt -c /tmp/cookies-missing.txt \
             -o /tmp/admin-missing.html \
             http://localhost:8080/admin/
 
