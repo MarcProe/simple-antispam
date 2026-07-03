@@ -8,74 +8,95 @@ Author: MarcProe
 Author URI: https://github.com/MarcProe
 */
 
-if ( !defined( 'YOURLS_ABSPATH' ) ) die();
+if (!defined('YOURLS_ABSPATH')) {
+    die();
+}
 
-if ( session_status() === PHP_SESSION_NONE ) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-function math_captcha_generate_question() {
-    $num1 = rand( 1, 99 );
-    $num2 = rand( 1, 99 );
+function math_captcha_generate_question(): void
+{
+    $num1 = rand(1, 99);
+    $num2 = rand(1, 99);
     $_SESSION['math_captcha_question'] = "$num1 + $num2";
     $_SESSION['math_captcha_answer']   = $num1 + $num2;
 }
 
-function math_captcha_get_question() {
-    if ( !isset( $_SESSION['math_captcha_answer'] ) ) {
+function math_captcha_get_question(): string
+{
+    if (!isset($_SESSION['math_captcha_answer'])) {
         math_captcha_generate_question();
     }
-    return $_SESSION['math_captcha_question'];
+    return (string) $_SESSION['math_captcha_question'];
 }
 
-function math_captcha_verify( $user_answer ) {
-    if ( !isset( $_SESSION['math_captcha_answer'] ) ) {
+function math_captcha_verify(string $user_answer): bool
+{
+    if (!isset($_SESSION['math_captcha_answer'])) {
         return false;
     }
     $correct = (int) $_SESSION['math_captcha_answer'];
     $given   = (int) $user_answer;
-    unset( $_SESSION['math_captcha_question'], $_SESSION['math_captcha_answer'] );
+    unset($_SESSION['math_captcha_question'], $_SESSION['math_captcha_answer']);
     return $given === $correct;
 }
 
-function math_captcha_add_field_to_form() {
+function math_captcha_add_field_to_form(): void
+{
     $question = math_captcha_get_question();
     ?>
     <div id="math-captcha-field">
-        <label for="math-captcha-answer"><strong><?php echo yourls_esc_html( yourls__( 'Math CAPTCHA' ) ); ?></strong></label>:
-        <span id="math-captcha-question"> <?php echo yourls_esc_html( $question ); ?> = </span>
-        <input type="text" id="math-captcha-answer" name="math_captcha_answer" class="text" size="10" placeholder="<?php echo yourls_esc_attr( yourls__( 'Answer' ) ); ?>" />
+        <label for="math-captcha-answer"><strong><?php echo yourls_esc_html(yourls__('Math CAPTCHA')); ?></strong></label>:
+        <span id="math-captcha-question"> <?php echo yourls_esc_html($question); ?> = </span>
+        <input
+            type="text"
+            id="math-captcha-answer"
+            name="math_captcha_answer"
+            class="text"
+            size="10"
+            placeholder="<?php echo yourls_esc_attr(yourls__('Answer')); ?>"
+        />
     </div>
     <?php
 }
-yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
+yourls_add_action('html_addnew', 'math_captcha_add_field_to_form');
 
-yourls_add_filter( 'shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4 );
+yourls_add_filter('shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4);
 
-function math_captcha_verify_on_add( $shunt, $url, $keyword, $title ) {
+/**
+ * @param mixed $shunt
+ * @param string $url
+ * @param string $keyword
+ * @param string $title
+ * @return mixed
+ */
+function math_captcha_verify_on_add($shunt, $url, $keyword, $title)
+{
     // Bookmarklet requests have no form, skip CAPTCHA
-    if ( isset( $_GET['u'] ) || isset( $_GET['up'] ) ) {
+    if (isset($_GET['u']) || isset($_GET['up'])) {
         return $shunt;
     }
 
-    $user_answer = isset( $_REQUEST['math_captcha_answer'] ) ? $_REQUEST['math_captcha_answer'] : '';
+    $user_answer = isset($_REQUEST['math_captcha_answer']) ? (string) $_REQUEST['math_captcha_answer'] : '';
 
-    if ( $user_answer === '' ) {
+    if ($user_answer === '') {
         return array(
             'status'     => 'fail',
             'code'       => 'error:captcha_missing',
-            'message'    => yourls__( 'Please solve the math CAPTCHA to shorten URLs.' ),
+            'message'    => yourls__('Please solve the math CAPTCHA to shorten URLs.'),
             'errorCode'  => '400',
             'statusCode' => '400',
         );
     }
 
-    if ( !math_captcha_verify( $user_answer ) ) {
+    if (!math_captcha_verify($user_answer)) {
         math_captcha_generate_question();
         return array(
             'status'     => 'fail',
             'code'       => 'error:captcha_wrong',
-            'message'    => yourls__( 'Incorrect answer. Please try again.' ),
+            'message'    => yourls__('Incorrect answer. Please try again.'),
             'errorCode'  => '400',
             'statusCode' => '400',
         );
@@ -84,7 +105,8 @@ function math_captcha_verify_on_add( $shunt, $url, $keyword, $title ) {
     return $shunt;
 }
 
-function math_captcha_add_css() {
+function math_captcha_add_css(): void
+{
     ?>
     <style>
     #math-captcha-field { margin-top: 10px; padding: 10px; background: #fff8e1; border: 1px solid #ffc107; border-radius: 4px; }
@@ -93,9 +115,10 @@ function math_captcha_add_css() {
     </style>
     <?php
 }
-yourls_add_action( 'admin_page_before_form', 'math_captcha_add_css' );
+yourls_add_action('admin_page_before_form', 'math_captcha_add_css');
 
-function math_captcha_add_js() {
+function math_captcha_add_js(): void
+{
     ?>
     <script>
     jQuery(document).ready(function($) {
@@ -109,7 +132,6 @@ function math_captcha_add_js() {
                 return false;
             }
 
-            // Temporarily wrap $.getJSON to inject captcha answer
             var _origGetJSON = $.getJSON;
             $.getJSON = function( url, data, callback ) {
                 if ( data && data.action === 'add' ) {
@@ -121,7 +143,6 @@ function math_captcha_add_js() {
             try {
                 return _orig.apply( this, arguments );
             } finally {
-                // Always restore original $.getJSON, even on errors
                 $.getJSON = _origGetJSON;
             }
         };
@@ -129,4 +150,4 @@ function math_captcha_add_js() {
     </script>
     <?php
 }
-yourls_add_action( 'admin_page_before_table', 'math_captcha_add_js' );
+yourls_add_action('admin_page_before_table', 'math_captcha_add_js');
