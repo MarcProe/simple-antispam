@@ -247,5 +247,20 @@ echo "Response: $response"
 echo "$response" | grep -q "error:captcha_missing" || { echo "FAIL: expected error:captcha_missing"; exit 1; }
 echo "PASS"
 
+# --- Optional: screenshots with a real browser (SCREENSHOTS=1) ---
+if [ "${SCREENSHOTS:-0}" = "1" ]; then
+    echo ""
+    echo "Capturing screenshots with Playwright..."
+    SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+    command -v node >/dev/null 2>&1 || { echo "FAIL: node is required for SCREENSHOTS=1"; exit 1; }
+    [ -d "$SCRIPT_DIR/node_modules/playwright" ] || (cd "$SCRIPT_DIR" && npm install)
+    # Debug output would clutter the screenshots; the config is re-read on
+    # every request, so no server restart is needed.
+    sed -i "s/define( 'YOURLS_DEBUG', true );/define( 'YOURLS_DEBUG', false );/" "$YOURLS_DIR/user/config.php"
+    BASE_URL="$BASE_URL" ADMIN_USER="$ADMIN_USER" ADMIN_PASS="$ADMIN_PASS" \
+        SCREENSHOT_DIR="${SCREENSHOT_DIR:-$SCRIPT_DIR/screenshots}" \
+        node "$SCRIPT_DIR/screenshots.mjs"
+fi
+
 echo ""
 echo "=== All integration tests passed ==="

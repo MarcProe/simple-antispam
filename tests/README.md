@@ -87,9 +87,11 @@ The test suite covers the following functionality:
 
 ```
 tests/
-├── bootstrap.php      # Test bootstrap - mocks YOURLS functions
+├── bootstrap.php       # Test bootstrap - mocks YOURLS functions
 ├── MathCaptchaTest.php # Main test class with all test cases
-└── README.md          # This file
+├── README.md           # This file
+└── integration/        # Integration tests against a real YOURLS install,
+                        # incl. Playwright browser screenshots (see its README)
 ```
 
 ## Writing New Tests

@@ -1,0 +1,12 @@
+{
+  "name": "math-captcha-integration-screenshots",
+  "private": true,
+  "description": "Playwright screenshot capture for the Math CAPTCHA integration test",
+  "type": "module",
+  "scripts": {
+    "screenshots": "node screenshots.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
