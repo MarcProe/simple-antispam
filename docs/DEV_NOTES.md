@@ -76,6 +76,10 @@ the exact majors here as a snapshot rather than a fixed contract.
   `Answer` placeholder, and the accessibility attributes).
 - The plugin `Version:` header in `plugin.php` is asserted by the unit tests —
   bump both together.
+- After opening a PR, always watch it: subscribe to its activity and keep it
+  green — autofix CI failures and address review comments — until it is merged
+  or closed. This is the default for every PR, not something to ask about
+  per-PR.
 
 ## Environment gotchas
 
