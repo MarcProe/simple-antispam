@@ -68,9 +68,10 @@ composer run integration-test
 
 `screenshots.mjs` drives a real Chromium browser against a running YOURLS
 instance: it logs in, verifies the CAPTCHA field renders, submits a wrong
-answer (rejected) and a correct answer (URL shortened), and saves a
-screenshot of each stage to `screenshots/`. This also exercises the plugin's
-JavaScript hook, which the curl-based tests cannot cover.
+answer (rejected) and a correct answer (URL shortened), checks that an empty
+answer is blocked client-side, and captures the field on a mobile viewport —
+saving a screenshot of each stage to `screenshots/`. This also exercises the
+plugin's JavaScript hook, which the curl-based tests cannot cover.
 
 ```bash
 npm install         # installs Playwright

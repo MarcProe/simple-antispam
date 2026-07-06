@@ -9,6 +9,8 @@ A simple anti-spam plugin for YOURLS that requires users to solve a basic math a
 - **AJAX Support**: Works seamlessly with YOURLS' AJAX form submissions
 - **Error Handling**: Provides clear feedback when the answer is incorrect or missing
 - **Styling**: Includes CSS styling to make the CAPTCHA field visible and user-friendly
+- **Accessible**: The answer field is programmatically tied to the question
+  (`aria-describedby`) and requests a numeric keypad on mobile (`inputmode`)
 - **Clean Code**: Well-structured, readable, and maintainable
 
 ## Screenshots
@@ -31,6 +33,14 @@ A wrong answer is rejected with an error message:
 With the correct answer, the URL is shortened as usual:
 
 ![Correct answer accepted, URL shortened](docs/screenshots/05-correct-answer-shortened.png)
+
+Leaving the answer empty is blocked client-side before any request is sent:
+
+![Missing answer rejected client-side](docs/screenshots/06-missing-answer-rejected.png)
+
+The field also renders sensibly on a mobile viewport:
+
+![CAPTCHA field on a mobile viewport](docs/screenshots/07-mobile-form.png)
 
 ## Installation
 

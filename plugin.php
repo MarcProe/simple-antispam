@@ -47,8 +47,8 @@ function math_captcha_add_field_to_form(): void
 {
     $question = math_captcha_get_question();
     ?>
-    <div id="math-captcha-field">
-        <label for="math-captcha-answer"><strong><?php echo yourls_esc_html(yourls__('Math CAPTCHA')); ?></strong></label>:
+    <div id="math-captcha-field" role="group" aria-labelledby="math-captcha-label">
+        <label id="math-captcha-label" for="math-captcha-answer"><strong><?php echo yourls_esc_html(yourls__('Math CAPTCHA')); ?></strong></label>:
         <span id="math-captcha-question"> <?php echo yourls_esc_html($question); ?> = </span>
         <input
             type="text"
@@ -56,6 +56,10 @@ function math_captcha_add_field_to_form(): void
             name="math_captcha_answer"
             class="text"
             size="10"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            aria-describedby="math-captcha-question"
             placeholder="<?php echo yourls_esc_attr(yourls__('Answer')); ?>"
         />
     </div>

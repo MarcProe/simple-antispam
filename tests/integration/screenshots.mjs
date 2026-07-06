@@ -125,6 +125,31 @@ try {
   check(true, `correct answer accepted, URL shortened (${fresh.question} = ${fresh.answer})`);
   await page.screenshot({ path: shot('05-correct-answer-shortened.png'), fullPage: true });
   console.log('Captured 05-correct-answer-shortened.png');
+
+  // --- 6. Missing answer rejected client-side ---
+  // The plugin's JavaScript hook blocks submission when the answer field is
+  // empty, before any request is sent — a separate path from the server-side
+  // check the curl tests exercise. Reload first for a clean form.
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#math-captcha-field');
+  await page.fill('#add-url', 'https://example.com/missing-answer');
+  await page.fill('#math-captcha-answer', '');
+  await page.click('#add-button');
+  const missingText = await waitForFeedbackBar();
+  check(/captcha/i.test(missingText), `missing answer rejected client-side ("${missingText.trim()}")`);
+  await page.screenshot({ path: shot('06-missing-answer-rejected.png'), fullPage: true });
+  console.log('Captured 06-missing-answer-rejected.png');
+
+  // --- 7. Mobile viewport ---
+  // Same logged-in session, narrow screen: verify the CAPTCHA field renders
+  // sensibly on a phone and document it.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#math-captcha-field');
+  const mobileVisible = await page.locator('#math-captcha-field').isVisible();
+  check(mobileVisible, 'CAPTCHA field renders on a mobile viewport (390px)');
+  await page.screenshot({ path: shot('07-mobile-form.png'), fullPage: true });
+  console.log('Captured 07-mobile-form.png');
 } finally {
   await browser.close();
 }
