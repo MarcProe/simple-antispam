@@ -150,6 +150,25 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $this->assertStringContainsString('Answer', $output);
     }
 
+    public function testFormFieldAccessibilityAttributes()
+    {
+        $_SESSION['math_captcha_question'] = '10 + 20';
+        $_SESSION['math_captcha_answer'] = 30;
+
+        ob_start();
+        math_captcha_add_field_to_form();
+        $output = ob_get_clean();
+
+        // The input must be programmatically tied to the question so screen
+        // readers announce the problem to solve.
+        $this->assertStringContainsString('aria-describedby="math-captcha-question"', $output);
+        $this->assertStringContainsString('id="math-captcha-question"', $output);
+        // A numeric input mode brings up the number keypad on mobile.
+        $this->assertStringContainsString('inputmode="numeric"', $output);
+        // A CAPTCHA answer should never be autofilled.
+        $this->assertStringContainsString('autocomplete="off"', $output);
+    }
+
     public function testCssOutput()
     {
         ob_start();

@@ -122,6 +122,8 @@ every stage:
 | `03-captcha-field-closeup.png` | Close-up of the CAPTCHA field |
 | `04-wrong-answer-rejected.png` | Error feedback for a wrong answer |
 | `05-correct-answer-shortened.png` | Successful shorten with the correct answer |
+| `06-missing-answer-rejected.png` | Client-side feedback when the answer is empty |
+| `07-mobile-form.png` | The CAPTCHA field on a 390px mobile viewport |
 
 Because the flows run through a real browser, this also exercises the
 plugin's JavaScript hook (the `add_link` wrapper that injects the answer into
@@ -168,10 +170,12 @@ workflow artifact. The images embedded in [README.md](README.md) (stored in
 8. The JavaScript hook injects the answer into YOURLS' AJAX `add` request
 9. Wrong answer shows the error feedback bar
 10. Correct answer adds the new short URL to the admin table
+11. Empty answer is blocked client-side before any request is sent
+12. CAPTCHA field renders on a mobile viewport
 
 ### Edge Cases (covered by the standalone checks / unit tests)
-11. Bookmarklet requests bypass the CAPTCHA (via `u` or `up` GET parameters)
-12. Session-based CAPTCHA (a new question is generated after each attempt)
+13. Bookmarklet requests bypass the CAPTCHA (via `u` or `up` GET parameters)
+14. Session-based CAPTCHA (a new question is generated after each attempt)
 
 ## Technical Details
 
