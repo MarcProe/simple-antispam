@@ -108,17 +108,22 @@ restricted or ephemeral CI/cloud sandbox.
 
 ## Ideas / roadmap
 
+Done:
+
+- **Supply-chain / security.** A Dependabot config (`.github/dependabot.yml`)
+  for the `github-actions` and `composer` ecosystems; `codacy-analysis-cli-action`
+  pinned off `@master` to a commit SHA (with a `# v4.4.7` version comment so
+  Dependabot can still bump it); a least-privilege `permissions: contents: read`
+  block added to `integration-test.yml` (the other three workflows already had
+  one).
+
 Not started — candidate follow-ups:
 
-1. **Supply-chain / security.** A Dependabot config for the `github-actions` and
-   `composer` ecosystems; pin `codacy-analysis-cli-action` off `@master` to a
-   tagged release or SHA; add a least-privilege `permissions:` block to
-   `integration-test.yml`.
-2. **Compliance / community health.** A `LICENSE` file (the project is MIT);
+1. **Compliance / community health.** A `LICENSE` file (the project is MIT);
    `SECURITY.md`, `CONTRIBUTING.md`, a PR template, issue templates, `CODEOWNERS`.
-3. **i18n.** The plugin is translation-*ready* but not yet translatable: add a
+2. **i18n.** The plugin is translation-*ready* but not yet translatable: add a
    `Text Domain` header, call `yourls_load_custom_textdomain()`, and ship a
    `.pot` template (optionally with a CI check that it is not stale).
-4. **CI robustness.** A PHP version matrix (7.1–8.3) to back the `composer.json`
+3. **CI robustness.** A PHP version matrix (7.1–8.3) to back the `composer.json`
    `>=7.1` claim; Composer dependency caching; `concurrency:` to cancel
    superseded runs.
