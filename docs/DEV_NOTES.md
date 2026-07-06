@@ -60,9 +60,12 @@ SCREENSHOTS=1 ./tests/integration/test-local.sh   # also capture browser screens
 | `phpcs.yml` | PHP_CodeSniffer (PSR-12) |
 | `codacy.yml` | Codacy security scan → SARIF |
 
-GitHub Actions run on the Node 24 runtime: `actions/checkout@v5`,
-`actions/setup-node@v5`, `actions/upload-artifact@v6` (v5 of upload-artifact
-still declared node20), `github/codeql-action@v4`.
+The PHP jobs run on `ubuntu-latest` with PHP 8.2 via `shivammathur/setup-php@v2`;
+the screenshot job adds Node via `actions/setup-node@v6` (`node-version: '22'`).
+The action pins (currently `actions/checkout@v7`, `actions/upload-artifact@v7`,
+`github/codeql-action/upload-sarif@v4`, and the SHA-pinned
+`codacy/codacy-analysis-cli-action`) are kept current by Dependabot, so treat
+the exact majors here as a snapshot rather than a fixed contract.
 
 ## Contributing
 

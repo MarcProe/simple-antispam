@@ -4,7 +4,7 @@ This directory contains comprehensive PHPUnit tests for the Math CAPTCHA plugin.
 
 ## Requirements
 
-- PHP 5.4 or higher
+- PHP 7.3 or higher (required by PHPUnit 9)
 - PHPUnit 9.0 or higher
 - Composer (for dependency management)
 
