@@ -66,7 +66,7 @@ If the answer is incorrect or missing, the plugin will display an error message 
 ## Requirements
 
 - YOURLS 1.7 or higher
-- PHP 5.4 or higher (uses `session_status()`)
+- PHP 7.1 or higher (the plugin uses `void` return types and scalar type hints)
 - JavaScript enabled in the browser (for AJAX form submissions)
 - PHP sessions must be enabled on your server
 
