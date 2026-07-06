@@ -3,7 +3,7 @@
 Plugin Name: Math CAPTCHA
 Plugin URI: https://github.com/MarcProe/simple-antispam
 Description: Adds a simple math question CAPTCHA to prevent automated URL submissions.
-Version: 1.1
+Version: 1.2
 Author: MarcProe
 Author URI: https://github.com/MarcProe
 */
@@ -83,7 +83,8 @@ function math_captcha_verify_on_add($shunt, $url, $keyword, $title)
         return $shunt;
     }
 
-    $user_answer = isset($_REQUEST['math_captcha_answer']) ? (string) $_REQUEST['math_captcha_answer'] : '';
+    $raw_answer  = $_REQUEST['math_captcha_answer'] ?? '';
+    $user_answer = is_string($raw_answer) ? $raw_answer : '';
 
     if ($user_answer === '') {
         return array(
