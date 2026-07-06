@@ -35,7 +35,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $plugin_file = file_get_contents(__DIR__ . '/../plugin.php');
 
         $this->assertStringContainsString('Plugin Name: Math CAPTCHA', $plugin_file);
-        $this->assertStringContainsString('Version: 1.1', $plugin_file);
+        $this->assertStringContainsString('Version: 1.2', $plugin_file);
         $this->assertStringContainsString('Description:', $plugin_file);
         $this->assertStringContainsString('Author: MarcProe', $plugin_file);
     }
@@ -221,6 +221,20 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $this->assertEquals('fail', $result['status']);
         $this->assertEquals('error:captcha_missing', $result['code']);
         $this->assertEquals('Please solve the math CAPTCHA to shorten URLs.', $result['message']);
+    }
+
+    public function testVerificationFilterArrayAnswerTreatedAsMissing()
+    {
+        $_SESSION['math_captcha_question'] = '5 + 7';
+        $_SESSION['math_captcha_answer'] = 12;
+        // A non-scalar submission (e.g. math_captcha_answer[]=5) must not be
+        // cast to a string; it is treated as no answer.
+        $_REQUEST = array('math_captcha_answer' => array('5'));
+
+        $result = math_captcha_verify_on_add('shunt', 'http://example.com', '', '');
+
+        $this->assertEquals('fail', $result['status']);
+        $this->assertEquals('error:captcha_missing', $result['code']);
     }
 
     public function testVerificationFilterWrongAnswer()
