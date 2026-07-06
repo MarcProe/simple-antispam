@@ -123,7 +123,7 @@ request; the screenshots are uploaded as a workflow artifact. See
 
 ## License
 
-This plugin is released under the MIT License, the same as YOURLS itself. Feel free to use, modify, and distribute as needed.
+This plugin is released under the [MIT License](LICENSE), the same as YOURLS itself. Feel free to use, modify, and distribute as needed.
 
 ## Support
 
