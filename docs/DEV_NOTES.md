@@ -116,14 +116,17 @@ Done:
   Dependabot can still bump it); a least-privilege `permissions: contents: read`
   block added to `integration-test.yml` (the other three workflows already had
   one).
+- **Compliance / community health.** A `LICENSE` file (MIT); `SECURITY.md`
+  (private vulnerability reporting); `CONTRIBUTING.md`; a PR template
+  (`.github/PULL_REQUEST_TEMPLATE.md`); issue templates
+  (`.github/ISSUE_TEMPLATE/` — bug, feature, plus a `config.yml` routing security
+  reports privately); `CODEOWNERS`.
 
 Not started — candidate follow-ups:
 
-1. **Compliance / community health.** A `LICENSE` file (the project is MIT);
-   `SECURITY.md`, `CONTRIBUTING.md`, a PR template, issue templates, `CODEOWNERS`.
-2. **i18n.** The plugin is translation-*ready* but not yet translatable: add a
+1. **i18n.** The plugin is translation-*ready* but not yet translatable: add a
    `Text Domain` header, call `yourls_load_custom_textdomain()`, and ship a
    `.pot` template (optionally with a CI check that it is not stale).
-3. **CI robustness.** A PHP version matrix (7.1–8.3) to back the `composer.json`
+2. **CI robustness.** A PHP version matrix (7.1–8.3) to back the `composer.json`
    `>=7.1` claim; Composer dependency caching; `concurrency:` to cancel
    superseded runs.
