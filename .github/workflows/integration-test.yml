@@ -310,6 +310,36 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        working-directory: tests/integration
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Capture screenshots
+        working-directory: tests/integration
+        env:
+          BASE_URL: http://localhost:8080
+        run: |
+          # Debug output would clutter the screenshots; the config is
+          # re-read on every request, so no server restart is needed.
+          sed -i "s/define( 'YOURLS_DEBUG', true );/define( 'YOURLS_DEBUG', false );/" "${YOURLS_DIR}/user/config.php"
+          node screenshots.mjs
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-screenshots
+          path: tests/integration/screenshots/
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Stop server
         if: always()
         run: |

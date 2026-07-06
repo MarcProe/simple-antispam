@@ -27,6 +27,9 @@ root for the full documentation; this is the short version.
   - The short URL redirects correctly
   - Wrong CAPTCHA answer is rejected (`error:captcha_wrong`)
   - Missing CAPTCHA answer is rejected (`error:captcha_missing`)
+- Finally runs the Playwright screenshot capture (`screenshots.mjs`, see
+  below) and uploads the images as the `integration-test-screenshots`
+  workflow artifact
 
 Runs on pushes and pull requests to `main`, or manually via
 `workflow_dispatch`.
@@ -42,6 +45,9 @@ Runs on pushes and pull requests to `main`, or manually via
 
 # Custom settings
 MYSQL_USER=me MYSQL_PASS=secret PORT=8888 ./test-local.sh
+
+# Also capture browser screenshots (requires Node.js)
+SCREENSHOTS=1 ./test-local.sh
 ```
 
 It creates and afterwards drops a scratch database (`yourls_captcha_test`).
@@ -58,7 +64,25 @@ php IntegrationTest.php
 composer run integration-test
 ```
 
-### 4. Docker (manual, interactive)
+### 4. Browser Screenshots (Playwright)
+
+`screenshots.mjs` drives a real Chromium browser against a running YOURLS
+instance: it logs in, verifies the CAPTCHA field renders, submits a wrong
+answer (rejected) and a correct answer (URL shortened), and saves a
+screenshot of each stage to `screenshots/`. This also exercises the plugin's
+JavaScript hook, which the curl-based tests cannot cover.
+
+```bash
+npm install         # installs Playwright
+node screenshots.mjs
+```
+
+Configure with `BASE_URL`, `ADMIN_USER`, `ADMIN_PASS`, `SCREENSHOT_DIR`, and
+`CHROMIUM_PATH` (to reuse an existing Chromium instead of downloading one).
+The images in `docs/screenshots/` (embedded in the main README) were
+produced by this script.
+
+### 5. Docker (manual, interactive)
 
 `docker-compose.yml` starts the official `yourls` image plus MySQL with this
 plugin mounted:

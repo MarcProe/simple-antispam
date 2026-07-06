@@ -10,6 +10,9 @@ The integration test verifies that the plugin works correctly with a **real YOUR
 2. Installing and activating the plugin
 3. Driving the admin interface with curl (login, nonce, AJAX form submission)
 4. Verifying CAPTCHA validation works correctly
+5. Driving the admin interface with a real browser (Playwright + Chromium),
+   verifying the plugin's JavaScript hook and capturing screenshots of every
+   stage
 
 > **Note**: YOURLS only supports MySQL/MariaDB. There is no SQLite support in
 > YOURLS core, so every test environment here uses MySQL.
@@ -35,6 +38,9 @@ The integration test verifies that the plugin works correctly with a **real YOUR
    - Verify the short URL redirect (via the `Location` header)
    - Verify a wrong answer is rejected with `error:captcha_wrong`
    - Verify a missing answer is rejected with `error:captcha_missing`
+8. Runs the Playwright screenshot capture (see below) against the same
+   YOURLS instance and uploads the screenshots as the
+   `integration-test-screenshots` workflow artifact (kept for 30 days)
 
 **To use**: runs automatically on pushes and pull requests to `main`, or trigger it manually via the Actions UI (`workflow_dispatch`).
 
@@ -58,10 +64,15 @@ chmod +x tests/integration/test-local.sh
 
 # Or with custom settings
 MYSQL_USER=me MYSQL_PASS=secret PORT=8888 ./tests/integration/test-local.sh
+
+# Also capture browser screenshots (requires Node.js)
+SCREENSHOTS=1 ./tests/integration/test-local.sh
 ```
 
 The script creates (and afterwards drops) a scratch database (default
-`yourls_captcha_test`) and cleans up its temporary files on exit.
+`yourls_captcha_test`) and cleans up its temporary files on exit. With
+`SCREENSHOTS=1` it additionally runs the Playwright screenshot capture (see
+below) and saves the images to `tests/integration/screenshots/`.
 
 ### 3. Standalone PHP Integration Checks
 
@@ -96,6 +107,50 @@ On first run, complete the YOURLS install screen, then activate
 "Math CAPTCHA" on the *Plugins* page. The mounted plugin directory is your
 live checkout, so code changes are visible on reload.
 
+### 5. Browser Screenshots (Playwright)
+
+**File**: `tests/integration/screenshots.mjs`
+
+Drives a real Chromium browser (via [Playwright](https://playwright.dev))
+against a running YOURLS instance and captures screenshots of the CAPTCHA at
+every stage:
+
+| Screenshot | Shows |
+|---|---|
+| `01-login-page.png` | YOURLS admin login page |
+| `02-admin-page-with-captcha.png` | The shortening form with the CAPTCHA field |
+| `03-captcha-field-closeup.png` | Close-up of the CAPTCHA field |
+| `04-wrong-answer-rejected.png` | Error feedback for a wrong answer |
+| `05-correct-answer-shortened.png` | Successful shorten with the correct answer |
+
+Because the flows run through a real browser, this also exercises the
+plugin's JavaScript hook (the `add_link` wrapper that injects the answer into
+YOURLS' AJAX request) — something the curl-based tests cannot cover. The
+script fails if the CAPTCHA field is missing, a wrong answer is not rejected,
+or a correct answer does not shorten the URL.
+
+**To use** (with a YOURLS instance prepared as in the workflow or local
+script):
+
+```bash
+cd tests/integration
+npm install                     # installs Playwright
+npx playwright install chromium # if Chromium is not already available
+node screenshots.mjs
+```
+
+Configuration via environment variables: `BASE_URL` (default
+`http://localhost:8080`), `ADMIN_USER`, `ADMIN_PASS`, `SCREENSHOT_DIR`
+(default `tests/integration/screenshots`), and `CHROMIUM_PATH` to point at an
+existing Chromium executable.
+
+In CI the screenshots are uploaded as the `integration-test-screenshots`
+workflow artifact. The images embedded in [README.md](README.md) (stored in
+`docs/screenshots/`) were produced by this script.
+
+> **Tip**: capture the screenshots with `YOURLS_DEBUG` set to `false`,
+> otherwise YOURLS prints SQL debug output at the bottom of every page.
+
 ## Test Cases Covered
 
 ### Positive Tests
@@ -108,9 +163,15 @@ live checkout, so code changes are visible on reload.
 5. Wrong CAPTCHA answer is rejected with `error:captcha_wrong`
 6. Missing CAPTCHA answer is rejected with `error:captcha_missing`
 
+### Browser Tests (Playwright screenshot capture)
+7. CAPTCHA field renders in a real browser
+8. The JavaScript hook injects the answer into YOURLS' AJAX `add` request
+9. Wrong answer shows the error feedback bar
+10. Correct answer adds the new short URL to the admin table
+
 ### Edge Cases (covered by the standalone checks / unit tests)
-7. Bookmarklet requests bypass the CAPTCHA (via `u` or `up` GET parameters)
-8. Session-based CAPTCHA (a new question is generated after each attempt)
+11. Bookmarklet requests bypass the CAPTCHA (via `u` or `up` GET parameters)
+12. Session-based CAPTCHA (a new question is generated after each attempt)
 
 ## Technical Details
 
@@ -170,8 +231,7 @@ server preinstalled (`root`/`root`), so no service container is needed.
 ## Future Enhancements
 
 1. Matrix-test multiple PHP and YOURLS versions
-2. Browser automation (Playwright) for testing the JavaScript form hook
-3. Performance/security test steps
+2. Performance/security test steps
 
 ## License
 

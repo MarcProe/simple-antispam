@@ -11,6 +11,27 @@ A simple anti-spam plugin for YOURLS that requires users to solve a basic math a
 - **Styling**: Includes CSS styling to make the CAPTCHA field visible and user-friendly
 - **Clean Code**: Well-structured, readable, and maintainable
 
+## Screenshots
+
+The screenshots below are captured automatically by the integration test suite
+(see [Testing](#testing)) against a real YOURLS 1.9.2 installation.
+
+The CAPTCHA field on the URL shortening form:
+
+![Admin page with the Math CAPTCHA field](docs/screenshots/02-admin-page-with-captcha.png)
+
+Close-up of the CAPTCHA field:
+
+![Math CAPTCHA field close-up](docs/screenshots/03-captcha-field-closeup.png)
+
+A wrong answer is rejected with an error message:
+
+![Wrong answer rejected](docs/screenshots/04-wrong-answer-rejected.png)
+
+With the correct answer, the URL is shortened as usual:
+
+![Correct answer accepted, URL shortened](docs/screenshots/05-correct-answer-shortened.png)
+
 ## Installation
 
 1. Download the plugin or clone this repository
@@ -47,10 +68,29 @@ You can modify the plugin behavior by editing the `plugin.php` file:
 - **Change styling**: Modify the CSS in the `math_captcha_add_css()` function
 - **Change error messages**: Update the messages in the `math_captcha_verify_on_add()` function
 
+## Testing
+
+The plugin ships with a full test suite:
+
+- **Unit tests** (`tests/MathCaptchaTest.php`): PHPUnit tests against a mocked
+  YOURLS API — `composer install && composer test`
+- **Integration tests** (`tests/integration/`): install a real YOURLS with the
+  plugin activated and exercise the CAPTCHA through the admin interface
+- **Browser screenshots** (`tests/integration/screenshots.mjs`): a Playwright
+  script drives Chromium through the login, wrong-answer, and correct-answer
+  flows, verifying the plugin's JavaScript hook and capturing the screenshots
+  shown above
+
+Everything runs automatically in GitHub Actions on every push and pull
+request; the screenshots are uploaded as a workflow artifact. See
+[INTEGRATION_TESTING.md](INTEGRATION_TESTING.md) for the full documentation.
+
 ## Files
 
 - `plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
 - `README.md` - This documentation file
+- `docs/screenshots/` - Screenshots captured by the integration test suite
+- `tests/` - Unit and integration tests (see [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md))
 
 ## How It Works
 
