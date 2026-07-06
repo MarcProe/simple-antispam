@@ -87,10 +87,22 @@ try {
   await page.fill('#add-url', 'https://example.com/wrong-answer');
   await page.fill('#math-captcha-answer', '99999');
   await page.click('#add-button');
-  // YOURLS renders feedback() messages in a jquery.notifyBar element
-  const wrongFeedback = page.locator('#__notifyBar');
-  await wrongFeedback.first().waitFor({ timeout: 10000 });
-  const wrongText = await wrongFeedback.first().textContent();
+  // YOURLS renders feedback() messages in a jquery.notifyBar element that
+  // slides down over 400ms. Playwright reports it visible from the first
+  // animation frame (height ~1px), so wait until it is fully expanded
+  // before taking a screenshot.
+  const waitForFeedbackBar = async () => {
+    await page.locator('#__notifyBar').first().waitFor({ timeout: 10000 });
+    await page.waitForFunction(
+      () => (document.querySelector('#__notifyBar')?.getBoundingClientRect().height ?? 0) > 30,
+      undefined,
+      { timeout: 10000 },
+    );
+    await page.waitForTimeout(300);
+    return page.locator('#__notifyBar').first().textContent();
+  };
+
+  const wrongText = await waitForFeedbackBar();
   check(/incorrect/i.test(wrongText), `wrong answer rejected ("${wrongText.trim()}")`);
   await page.screenshot({ path: shot('04-wrong-answer-rejected.png'), fullPage: true });
   console.log('Captured 04-wrong-answer-rejected.png');
@@ -109,6 +121,7 @@ try {
   await page.click('#add-button');
   const newRow = page.locator('#main_table tbody tr', { hasText: uniqueUrl });
   await newRow.first().waitFor({ timeout: 10000 });
+  await waitForFeedbackBar();
   check(true, `correct answer accepted, URL shortened (${fresh.question} = ${fresh.answer})`);
   await page.screenshot({ path: shot('05-correct-answer-shortened.png'), fullPage: true });
   console.log('Captured 05-correct-answer-shortened.png');
