@@ -1,0 +1,28 @@
+--- a/sample-public-front-page.txt
++++ b/sample-public-front-page.txt
+@@ -74,6 +74,11 @@
+ 
+ 		$site = YOURLS_SITE;
+ 
++		// Load the Math CAPTCHA styling (normally only added on admin pages).
++		if ( function_exists( 'math_captcha_add_css' ) ) {
++			math_captcha_add_css();
++		}
++
+ 		// Display the form
+ 		echo <<<HTML
+ 		<h2>Enter a new URL to shorten</h2>
+@@ -81,6 +86,13 @@
+ 		<p><label>URL: <input type="text" class="text" name="url" value="http://" /></label></p>
+ 		<p><label>Optional custom short URL: $site/<input type="text" class="text" name="keyword" /></label></p>
+ 		<p><label>Optional title: <input type="text" class="text" name="title" /></label></p>
++HTML;
++
++		// Render the Math CAPTCHA field. The stock sample never fires the
++		// 'html_addnew' action this plugin hooks into, so trigger it here.
++		yourls_do_action( 'html_addnew' );
++
++		echo <<<HTML
+ 		<p><input type="submit" class="button primary" value="Shorten" /></p>
+ 		</form>
+ HTML;
