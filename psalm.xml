@@ -11,6 +11,7 @@
         <ignoreFiles>
             <directory name="vendor" />
             <directory name="tests" />
+            <directory name="plugins/*/tests" />
             <directory name="stubs" />
         </ignoreFiles>
     </projectFiles>

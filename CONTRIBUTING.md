@@ -18,11 +18,12 @@ composer install --ignore-platform-req=php
 ## Development workflow
 
 - Branch off `main`, and open pull requests against `main`.
-- The entire plugin lives in [`plugin.php`](plugin.php) (PHP logic plus embedded
-  JS and CSS). Keep it PSR-12 clean and Psalm-clean.
+- Each plugin lives under `plugins/<name>/`. The Math CAPTCHA plugin is a single
+  file, [`plugins/math-captcha/plugin.php`](plugins/math-captcha/plugin.php) (PHP
+  logic plus embedded JS and CSS). Keep it PSR-12 clean and Psalm-clean.
 - If you change the form markup, update the assertions in
-  `tests/MathCaptchaTest.php` — they check the field ids, the question, the
-  `Answer` placeholder, and the accessibility attributes.
+  `plugins/math-captcha/tests/MathCaptchaTest.php` — they check the field ids, the
+  question, the `Answer` placeholder, and the accessibility attributes.
 - The plugin `Version:` header in `plugin.php` is asserted by the unit tests, so
   bump both together.
 

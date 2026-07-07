@@ -1,18 +1,21 @@
 <?xml version="1.0"?>
 <ruleset name="simple-antispam">
-    <description>PHP_CodeSniffer ruleset for Math CAPTCHA plugin</description>
+    <description>PHP_CodeSniffer ruleset for the plugins in this repository</description>
 
-    <file>plugin.php</file>
+    <file>plugins</file>
+
+    <!-- Plugin source is linted; each plugin's tests keep the YOURLS test style -->
+    <exclude-pattern>*/tests/*</exclude-pattern>
 
     <rule ref="PSR12" />
 
     <!-- YOURLS plugins must register hooks at load time; side effects are unavoidable -->
     <rule ref="PSR1.Files.SideEffects">
-        <exclude-pattern>plugin.php</exclude-pattern>
+        <exclude-pattern>*/plugin.php</exclude-pattern>
     </rule>
 
     <!-- HTML/CSS template lines may exceed 120 chars; not meaningful to enforce -->
     <rule ref="Generic.Files.LineLength">
-        <exclude-pattern>plugin.php</exclude-pattern>
+        <exclude-pattern>*/plugin.php</exclude-pattern>
     </rule>
 </ruleset>

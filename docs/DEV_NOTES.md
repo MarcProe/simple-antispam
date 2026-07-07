@@ -8,7 +8,7 @@ docs see [README.md](../README.md); for the testing strategy see
 
 A YOURLS anti-spam plugin that makes the user solve a random `X + Y` addition
 problem before a URL can be shortened. Everything lives in a single
-[`plugin.php`](../plugin.php):
+[`plugin.php`](../plugins/math-captcha/plugin.php):
 
 - The question/answer are generated with `rand(1, 99)` and stored in the PHP
   session.
@@ -22,11 +22,17 @@ problem before a URL can be shortened. Everything lives in a single
 
 ## Repository layout
 
+Each plugin lives in its own directory under `plugins/` (currently just
+`math-captcha`). The tooling around the plugins — the shared test harness,
+Composer scripts, linting/analysis config, and CI — sits at the repository root
+and applies to every plugin, so adding a new plugin is a matter of dropping a
+`plugins/<name>/plugin.php` (plus its own `tests/`) into place.
+
 | Path | Purpose |
 |---|---|
-| `plugin.php` | The entire plugin (PHP logic + embedded JS + CSS) |
-| `tests/MathCaptchaTest.php` | PHPUnit unit tests against the mocked YOURLS API |
-| `tests/bootstrap.php` | Mocks the YOURLS functions the plugin calls |
+| `plugins/math-captcha/plugin.php` | The entire plugin (PHP logic + embedded JS + CSS) |
+| `plugins/math-captcha/tests/MathCaptchaTest.php` | PHPUnit unit tests against the mocked YOURLS API |
+| `tests/bootstrap.php` | Shared harness: mocks the YOURLS functions and auto-loads every plugin under `plugins/` |
 | `tests/integration/IntegrationTest.php` | Standalone unit-style checks, no DB/server |
 | `tests/integration/test-local.sh` | Full curl flow against a real YOURLS + MySQL |
 | `tests/integration/screenshots.mjs` | Playwright browser capture (7 stages) |
