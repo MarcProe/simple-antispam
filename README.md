@@ -79,41 +79,43 @@ interface — and then make sure the CAPTCHA renders and is styled there too.
 
    With this off, anyone can reach the shortening API/form without logging in.
 
-2. **Create a public front page.** YOURLS ships a template for this. Copy the
-   contents of `sample-public-front-page.txt` (in the YOURLS root) into a new
-   `index.php` in the YOURLS root (or adapt it into your own theme). The
-   template calls `yourls_html_addnew()` to render the shortening form.
+2. **Use the ready-made public front page.** This plugin ships a
+   [`sample-public-front-page.txt`](sample-public-front-page.txt) template that
+   is already wired for the CAPTCHA. Copy it into the **root** of your YOURLS
+   install and rename it to `.php` — typically as `index.php`:
 
-3. **The CAPTCHA field appears automatically.** The plugin attaches its field to
-   the `html_addnew` action, which `yourls_html_addnew()` fires on the public
-   front page just as it does in the admin. Server-side verification runs
-   through the `shunt_add_new_link` filter, so **the answer is enforced on the
-   public page with no code changes** — a wrong or missing answer is rejected
-   exactly as it is in the admin.
-
-4. **Add the styling (and, optionally, the JS) to the public page.** The
-   plugin's CSS and client-side check are bound to admin-only hooks
-   (`admin_page_before_form` and `admin_page_before_table`), so they do **not**
-   run on the public front page. To style the field there, hook the CSS onto an
-   action that also fires publicly. The simplest change is to print the CSS
-   right before the field on every page (admin *and* public) by editing
-   `plugin.php`:
-
-   ```php
-   // Replace the admin-only CSS hook:
-   //   yourls_add_action('admin_page_before_form', 'math_captcha_add_css');
-   // with one that also fires on the public front page:
-   yourls_add_action('html_addnew', 'math_captcha_add_css');
+   ```sh
+   cp sample-public-front-page.txt /path/to/yourls/index.php
    ```
 
-   The bundled client-side JavaScript (`math_captcha_add_js`) wraps YOURLS'
-   admin `add_link()` / `feedback()` functions, which do not exist on the
-   public front page, so it is intentionally left admin-only. The public page
-   still gets full server-side protection; if you want an inline "please answer
-   first" hint before submitting, add validation tailored to your public front
-   page's own form markup.
+   Unauthorized visitors now get a shortening form with the math question,
+   styled, and enforced.
 
-For the full details of YOURLS' public interface, see the
+Why a dedicated template? YOURLS' own `sample-public-front-page.txt` echoes its
+form markup directly and never calls `yourls_html_addnew()`, so the
+`html_addnew` action — where this plugin injects its CAPTCHA field — never
+fires, and no CAPTCHA would appear. The bundled template fixes that in two
+places:
+
+- **The field** is rendered by calling `yourls_do_action('html_addnew')` inside
+  the form, so the plugin's question and answer box show up (alongside anything
+  else hooked there).
+- **The styling** is admin-only by default (the CSS is attached to the
+  `admin_page_before_form` hook), so the template loads it explicitly with
+  `math_captcha_add_css()` for the public page.
+
+**Verification needs no extra code.** `yourls_add_new_link()` triggers the
+`shunt_add_new_link` filter, which is exactly where this plugin checks the
+answer — so a wrong or missing answer is rejected on the public page just as it
+is in the admin.
+
+**No client-side JS on the public page.** The bundled JavaScript
+(`math_captcha_add_js`) wraps YOURLS' *admin* `add_link()` / `feedback()`
+functions, which don't exist on a public front page, so it is intentionally
+left admin-only. The public page still gets full server-side protection; add an
+inline hint tailored to your own form markup if you want one.
+
+For background on YOURLS' public interface, see the
 [YOURLS public server documentation](https://yourls.org/#Public).
 
 ## Requirements
@@ -151,6 +153,7 @@ request; the screenshots are uploaded as a workflow artifact. See
 ## Files
 
 - `plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
+- `sample-public-front-page.txt` - Ready-to-use public front page template with the CAPTCHA wired in (see [Enabling the CAPTCHA on the public front page](#enabling-the-captcha-on-the-public-front-page-unauthorized-users))
 - `README.md` - This documentation file
 - `docs/screenshots/` - Screenshots captured by the integration test suite
 - `tests/` - Unit and integration tests (see [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md))

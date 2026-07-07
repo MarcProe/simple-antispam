@@ -1,0 +1,99 @@
+<?php
+
+/*
+ * Sample public front page for YOURLS, protected by the Math CAPTCHA plugin.
+ *
+ * This is an EXAMPLE public interface that lets unauthorized (not logged-in)
+ * visitors shorten URLs while still being protected by the Math CAPTCHA. It is
+ * based on YOURLS' own sample-public-front-page.txt and is provided so you can
+ * build from it and customize to suit your needs. It is not part of the plugin
+ * itself -- don't submit feature requests about this file, it's yours to adapt.
+ *
+ * How to use it:
+ *   1. In your YOURLS user/config.php, make the install public:
+ *          define( 'YOURLS_PRIVATE', false );
+ *   2. Activate the Math CAPTCHA plugin in the YOURLS admin.
+ *   3. Copy this file into the ROOT of your YOURLS install and rename it to
+ *      .php, for example:
+ *          cp sample-public-front-page.txt /path/to/yourls/index.php
+ *
+ * Why this differs from YOURLS' stock sample: the stock sample echoes its own
+ * form markup and never calls yourls_html_addnew(), so the 'html_addnew' action
+ * -- where this plugin injects its CAPTCHA field -- never fires. This version
+ * fires that action explicitly (see yourls_do_action('html_addnew') below) and
+ * pulls in the plugin's styling, which is otherwise only loaded on admin pages.
+ */
+
+// Start YOURLS engine. This file must live in your YOURLS root directory.
+require_once( dirname( __FILE__ ) . '/includes/load-yourls.php' );
+
+// Part to be executed if the FORM has been submitted.
+if ( isset( $_REQUEST['url'] ) && $_REQUEST['url'] != 'http://' ) {
+
+    // Parameters are all sanitized inside yourls_add_new_link().
+    $url     = $_REQUEST['url'];
+    $keyword = isset( $_REQUEST['keyword'] ) ? $_REQUEST['keyword'] : '';
+    $title   = isset( $_REQUEST['title'] ) ? $_REQUEST['title'] : '';
+
+    // yourls_add_new_link() triggers the 'shunt_add_new_link' filter, which is
+    // exactly where the Math CAPTCHA plugin verifies the visitor's answer. A
+    // wrong or missing answer is rejected here automatically -- no extra code
+    // is required on this page for the CAPTCHA to be enforced.
+    $return   = yourls_add_new_link( $url, $keyword, $title );
+
+    $shorturl = isset( $return['shorturl'] ) ? $return['shorturl'] : '';
+    $message  = isset( $return['message'] ) ? $return['message'] : '';
+    $title    = isset( $return['title'] ) ? $return['title'] : '';
+    $status   = isset( $return['status'] ) ? $return['status'] : '';
+}
+
+// Insert <head> markup and all of YOURLS' CSS & JS files.
+yourls_html_head();
+
+echo '<h1>YOURLS - Your Own URL Shortener</h1>' . "\n";
+
+// Show the result of a submission, if any.
+if ( isset( $status ) && $status === 'success' ) {
+
+    echo '<h2>' . yourls_esc_html( $message ) . '</h2>';
+
+    // Copy box and Quick Share box for the freshly created short URL.
+    yourls_share_box( $url, $shorturl, $title, '' );
+    echo '<script>init_clipboard();</script>' . "\n";
+
+} elseif ( isset( $message ) && $message !== '' ) {
+
+    // This also surfaces the plugin's CAPTCHA errors, e.g. "Incorrect answer.
+    // Please try again." or "Please solve the math CAPTCHA to shorten URLs."
+    echo '<h2>' . yourls_esc_html( $message ) . '</h2>';
+}
+
+// The Math CAPTCHA styling is normally attached to admin-only hooks, so load it
+// explicitly here so the field is styled on this public page too.
+if ( function_exists( 'math_captcha_add_css' ) ) {
+    math_captcha_add_css();
+}
+
+$site = yourls_esc_attr( YOURLS_SITE );
+?>
+<h2>Enter a new URL to shorten</h2>
+<form method="post" action="">
+    <p><label>URL: <input type="text" class="text" name="url" value="http://" /></label></p>
+    <p><label>Optional custom short URL: <?php echo $site; ?>/<input type="text" class="text" name="keyword" /></label></p>
+    <p><label>Optional title: <input type="text" class="text" name="title" /></label></p>
+    <?php
+    // Render the Math CAPTCHA field (plus anything else hooked onto html_addnew).
+    // This is the line the stock YOURLS sample is missing.
+    yourls_do_action( 'html_addnew' );
+    ?>
+    <p><input type="submit" class="button primary" value="Shorten" /></p>
+</form>
+
+<h2>Please note</h2>
+<p>A public interface <strong>will</strong> attract spammers. The Math CAPTCHA
+helps, but you are still strongly advised to add any further anti-spam
+counter-measures appropriate for your site.</p>
+
+<?php
+// Display page footer.
+yourls_html_footer();
