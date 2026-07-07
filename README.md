@@ -63,6 +63,59 @@ If the answer is incorrect or missing, the plugin will display an error message 
 
 **Note on Bookmarklets**: By default, CAPTCHA is skipped for bookmarklet requests since they don't display a form. If you want to enable CAPTCHA for bookmarklets, you would need to modify the plugin to handle bookmarklet-specific logic.
 
+## Enabling the CAPTCHA on the public front page (unauthorized users)
+
+Out of the box, YOURLS is a *private* installation: only logged-in admins reach
+the URL shortening form, so the CAPTCHA only ever appears in the admin
+interface. If you want unauthorized (not logged-in) visitors to be able to
+shorten URLs from a public homepage, you have to opt in to YOURLS' public
+interface — and then make sure the CAPTCHA renders and is styled there too.
+
+1. **Make YOURLS public.** In your YOURLS `user/config.php`, set:
+
+   ```php
+   define( 'YOURLS_PRIVATE', false );
+   ```
+
+   With this off, anyone can reach the shortening API/form without logging in.
+
+2. **Create a public front page.** YOURLS ships a template for this. Copy the
+   contents of `sample-public-front-page.txt` (in the YOURLS root) into a new
+   `index.php` in the YOURLS root (or adapt it into your own theme). The
+   template calls `yourls_html_addnew()` to render the shortening form.
+
+3. **The CAPTCHA field appears automatically.** The plugin attaches its field to
+   the `html_addnew` action, which `yourls_html_addnew()` fires on the public
+   front page just as it does in the admin. Server-side verification runs
+   through the `shunt_add_new_link` filter, so **the answer is enforced on the
+   public page with no code changes** — a wrong or missing answer is rejected
+   exactly as it is in the admin.
+
+4. **Add the styling (and, optionally, the JS) to the public page.** The
+   plugin's CSS and client-side check are bound to admin-only hooks
+   (`admin_page_before_form` and `admin_page_before_table`), so they do **not**
+   run on the public front page. To style the field there, hook the CSS onto an
+   action that also fires publicly. The simplest change is to print the CSS
+   right before the field on every page (admin *and* public) by editing
+   `plugin.php`:
+
+   ```php
+   // Replace the admin-only CSS hook:
+   //   yourls_add_action('admin_page_before_form', 'math_captcha_add_css');
+   // with one that also fires on the public front page:
+   yourls_add_action('html_addnew', 'math_captcha_add_css');
+   ```
+
+   The bundled client-side JavaScript (`math_captcha_add_js`) wraps YOURLS'
+   admin `add_link()` / `feedback()` functions, which do not exist on the
+   public front page, so it is intentionally left admin-only. The public page
+   still gets full server-side protection; if you want an inline "please answer
+   first" hint before submitting, add validation tailored to your public front
+   page's own form markup.
+
+For the full details of YOURLS' public interface, see the
+[YOURLS public server documentation](https://yourls.org/#Public).
+
 ## Requirements
 
 - YOURLS 1.7 or higher
