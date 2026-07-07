@@ -115,6 +115,56 @@ functions, which don't exist on a public front page, so it is intentionally
 left admin-only. The public page still gets full server-side protection; add an
 inline hint tailored to your own form markup if you want one.
 
+### Already customized YOURLS' own sample? Apply the diff
+
+If you started from YOURLS' stock `sample-public-front-page.txt` and don't want
+to lose your customizations, the same integration is only a few lines. This
+repo ships those changes as a patch —
+[`docs/captcha-public-front-page.patch`](docs/captcha-public-front-page.patch) —
+which applies cleanly on top of the stock YOURLS sample:
+
+```sh
+# from your YOURLS root, against the stock sample-public-front-page.txt
+patch -p1 < /path/to/math-captcha/docs/captcha-public-front-page.patch
+```
+
+The diff itself:
+
+```diff
+--- a/sample-public-front-page.txt
++++ b/sample-public-front-page.txt
+@@ -74,6 +74,11 @@
+
+ 		$site = YOURLS_SITE;
+
++		// Load the Math CAPTCHA styling (normally only added on admin pages).
++		if ( function_exists( 'math_captcha_add_css' ) ) {
++			math_captcha_add_css();
++		}
++
+ 		// Display the form
+ 		echo <<<HTML
+ 		<h2>Enter a new URL to shorten</h2>
+@@ -81,6 +86,13 @@
+ 		<p><label>URL: <input type="text" class="text" name="url" value="http://" /></label></p>
+ 		<p><label>Optional custom short URL: $site/<input type="text" class="text" name="keyword" /></label></p>
+ 		<p><label>Optional title: <input type="text" class="text" name="title" /></label></p>
++HTML;
++
++		// Render the Math CAPTCHA field. The stock sample never fires the
++		// 'html_addnew' action this plugin hooks into, so trigger it here.
++		yourls_do_action( 'html_addnew' );
++
++		echo <<<HTML
+ 		<p><input type="submit" class="button primary" value="Shorten" /></p>
+ 		</form>
+ HTML;
+```
+
+Server-side verification still needs nothing added — it rides along on
+`yourls_add_new_link()` as described above. (Line numbers are for the current
+YOURLS sample; `patch` will apply with a small offset against older versions.)
+
 For background on YOURLS' public interface, see the
 [YOURLS public server documentation](https://yourls.org/#Public).
 
@@ -154,6 +204,7 @@ request; the screenshots are uploaded as a workflow artifact. See
 
 - `plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
 - `sample-public-front-page.txt` - Ready-to-use public front page template with the CAPTCHA wired in (see [Enabling the CAPTCHA on the public front page](#enabling-the-captcha-on-the-public-front-page-unauthorized-users))
+- `docs/captcha-public-front-page.patch` - Patch that adds the CAPTCHA integration to YOURLS' own stock sample front page
 - `README.md` - This documentation file
 - `docs/screenshots/` - Screenshots captured by the integration test suite
 - `tests/` - Unit and integration tests (see [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md))
