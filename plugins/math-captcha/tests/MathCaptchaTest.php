@@ -12,22 +12,30 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $_SESSION = array();
         $_GET     = array();
         $_REQUEST = array();
+        $_POST    = array();
 
-        global $yourls_actions, $yourls_filters;
+        global $yourls_actions, $yourls_filters, $yourls_options, $yourls_plugin_pages;
         $yourls_actions = array();
         $yourls_filters = array();
+        $yourls_options = array();
 
-        // require_once is a no-op after the first include, so re-register hooks directly
+        // Load plugin.php to register hooks and settings page
+        require_once __DIR__ . '/../plugin.php';
+
+        // Ensure settings page is registered for this test
+        yourls_register_plugin_page('math-captcha', 'Math CAPTCHA', 'math_captcha_settings_page');
+
+        // Re-register hooks directly to ensure they are set up for each test
         yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
         yourls_add_action( 'admin_page_before_form', 'math_captcha_add_css' );
         yourls_add_action( 'admin_page_before_table', 'math_captcha_add_js' );
         yourls_add_filter( 'shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4 );
     }
-
     protected function tearDown(): void
     {
         $_GET     = array();
         $_REQUEST = array();
+        $_POST    = array();
     }
 
     public function testPluginHeader()
@@ -43,9 +51,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
     public function testDirectAccessBlocked()
     {
         $plugin_file = file_get_contents(__DIR__ . '/../plugin.php');
-        $this->assertStringContainsString("if (!defined('YOURLS_ABSPATH')) {
-    die();
-}", $plugin_file);
+        $this->assertStringContainsString("if (!defined('YOURLS_ABSPATH')) {\n    die();\n}", $plugin_file);
     }
 
     public function testGenerateQuestion()
@@ -56,7 +62,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $this->assertArrayHasKey('math_captcha_answer', $_SESSION);
 
         $question = $_SESSION['math_captcha_question'];
-        $this->assertMatchesRegularExpression('/^\d+ \+ \d+$/', $question);
+        $this->assertMatchesRegularExpression('/^\\d+ \\+ \\d+$/', $question);
 
         $parts = explode(' + ', $question);
         $expected_answer = (int)$parts[0] + (int)$parts[1];
@@ -292,7 +298,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
             $question = $_SESSION['math_captcha_question'];
             $answer   = $_SESSION['math_captcha_answer'];
 
-            $this->assertMatchesRegularExpression('/^\d+ \+ \d+$/', $question);
+            $this->assertMatchesRegularExpression('/^\\d+ \\+ \\d+$/', $question);
 
             $parts = explode(' + ', $question);
             $this->assertGreaterThanOrEqual(1, (int)$parts[0]);
@@ -325,5 +331,79 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
 
         $this->assertArrayNotHasKey('math_captcha_question', $_SESSION);
         $this->assertArrayNotHasKey('math_captcha_answer', $_SESSION);
+    }
+
+    // New tests for settings functionality
+
+    public function testDefaultMinValue()
+    {
+        $min = math_captcha_get_min();
+        $this->assertEquals(1, $min);
+    }
+
+    public function testDefaultMaxValue()
+    {
+        $max = math_captcha_get_max();
+        $this->assertEquals(49, $max);
+    }
+
+    public function testCustomMinValue()
+    {
+        yourls_update_option('math_captcha_min', 10);
+        $min = math_captcha_get_min();
+        $this->assertEquals(10, $min);
+    }
+
+    public function testCustomMaxValue()
+    {
+        yourls_update_option('math_captcha_max', 50);
+        $max = math_captcha_get_max();
+        $this->assertEquals(50, $max);
+    }
+
+    public function testQuestionGenerationUsesCustomRange()
+    {
+        yourls_update_option('math_captcha_min', 10);
+        yourls_update_option('math_captcha_max', 20);
+
+        for ($i = 0; $i < 50; $i++) {
+            math_captcha_generate_question();
+            $question = $_SESSION['math_captcha_question'];
+            $parts = explode(' + ', $question);
+
+            $this->assertGreaterThanOrEqual(10, (int)$parts[0]);
+            $this->assertLessThanOrEqual(20, (int)$parts[0]);
+            $this->assertGreaterThanOrEqual(10, (int)$parts[1]);
+            $this->assertLessThanOrEqual(20, (int)$parts[1]);
+        }
+    }
+
+    public function testMaxAdjustsToMinIfLess()
+    {
+        yourls_update_option('math_captcha_min', 20);
+        yourls_update_option('math_captcha_max', 10);
+
+        math_captcha_generate_question();
+        $question = $_SESSION['math_captcha_question'];
+        $parts = explode(' + ', $question);
+
+        // Max should be adjusted to min + 1
+        $this->assertGreaterThanOrEqual(20, (int)$parts[0]);
+        $this->assertGreaterThanOrEqual(20, (int)$parts[1]);
+    }
+
+    public function testSettingsPageFileExists()
+    {
+        $this->assertFileExists(__DIR__ . '/../settings.php');
+    }
+
+    public function testSettingsPageRegistered()
+    {
+        global $yourls_plugin_pages;
+
+        // The settings page is registered when plugin.php is loaded
+        $this->assertArrayHasKey('math-captcha', $yourls_plugin_pages);
+        $this->assertEquals('Math CAPTCHA', $yourls_plugin_pages['math-captcha']['title']);
+        $this->assertEquals('math_captcha_settings_page', $yourls_plugin_pages['math-captcha']['function']);
     }
 }
