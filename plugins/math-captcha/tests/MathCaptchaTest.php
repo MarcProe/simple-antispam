@@ -22,13 +22,15 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         // Load plugin.php to register hooks and settings page
         require_once __DIR__ . '/../plugin.php';
 
+        // Ensure settings page is registered for this test
+        yourls_register_plugin_page('math-captcha', 'Math CAPTCHA', 'math_captcha_settings_page');
+
         // Re-register hooks directly to ensure they are set up for each test
         yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
         yourls_add_action( 'admin_page_before_form', 'math_captcha_add_css' );
         yourls_add_action( 'admin_page_before_table', 'math_captcha_add_js' );
         yourls_add_filter( 'shunt_add_new_link', 'math_captcha_verify_on_add', 10, 4 );
     }
-
     protected function tearDown(): void
     {
         $_GET     = array();
@@ -309,7 +311,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
 
     public function testAnswerAlwaysPositive()
     {
-        for ($i = 0; i < 100; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             math_captcha_generate_question();
             $answer = $_SESSION['math_captcha_answer'];
 
@@ -364,7 +366,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         yourls_update_option('math_captcha_min', 10);
         yourls_update_option('math_captcha_max', 20);
 
-        for ($i = 0; i < 50; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             math_captcha_generate_question();
             $question = $_SESSION['math_captcha_question'];
             $parts = explode(' + ', $question);
