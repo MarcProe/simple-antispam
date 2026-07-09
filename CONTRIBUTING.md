@@ -31,7 +31,7 @@ composer install --ignore-platform-req=php
 
 ```bash
 # Unit tests + standalone checks (no database needed)
-vendor/bin/phpunit tests/MathCaptchaTest.php
+vendor/bin/phpunit
 php tests/integration/IntegrationTest.php
 
 # Lint / static analysis

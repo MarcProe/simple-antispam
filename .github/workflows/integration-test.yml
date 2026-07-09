@@ -30,7 +30,7 @@ jobs:
         run: composer install --no-progress
 
       - name: Run unit tests
-        run: vendor/bin/phpunit tests/MathCaptchaTest.php
+        run: vendor/bin/phpunit
 
       - name: Run standalone integration checks
         run: |

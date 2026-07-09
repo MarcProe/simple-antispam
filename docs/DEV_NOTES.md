@@ -45,7 +45,7 @@ and applies to every plugin, so adding a new plugin is a matter of dropping a
 ```bash
 # Unit tests + standalone checks (no database needed)
 composer install
-vendor/bin/phpunit tests/MathCaptchaTest.php
+vendor/bin/phpunit
 php tests/integration/IntegrationTest.php
 
 # Lint / static analysis
@@ -78,7 +78,7 @@ the exact majors here as a snapshot rather than a fixed contract.
 - Branch off `main`; open PRs against `main`.
 - Keep `plugin.php` PSR-12 clean (`vendor/bin/phpcs`) and Psalm-clean.
 - If you change the form markup, update the assertions in
-  `tests/MathCaptchaTest.php` (they check the field ids, the question, the
+  `plugins/math-captcha/tests/MathCaptchaTest.php` (they check the field ids, the question, the
   `Answer` placeholder, and the accessibility attributes).
 - The plugin `Version:` header in `plugin.php` is asserted by the unit tests —
   bump both together.
