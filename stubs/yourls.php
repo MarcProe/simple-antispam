@@ -44,3 +44,38 @@ function yourls_esc_attr(string $text): string { return $text; }
  * @return string
  */
 function yourls_sanitize_int(string $int): string { return $int; }
+
+/**
+ * @param string $name
+ * @param mixed $default
+ * @return mixed
+ */
+function yourls_get_option(string $name, $default = null) { return $default; }
+
+/**
+ * @param string $name
+ * @param mixed $value
+ * @return bool
+ */
+function yourls_update_option(string $name, $value): bool { return true; }
+
+/**
+ * @param string $page
+ * @param string $title
+ * @param callable $function
+ * @return void
+ */
+function yourls_register_plugin_page(string $page, string $title, callable $function): void {}
+
+/**
+ * @param string $action
+ * @return string
+ */
+function yourls_create_nonce(string $action): string { return ''; }
+
+/**
+ * @param string $action
+ * @param string $nonce
+ * @return bool
+ */
+function yourls_verify_nonce(string $action, string $nonce): bool { return true; }

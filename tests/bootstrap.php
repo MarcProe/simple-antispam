@@ -55,9 +55,58 @@ if (!function_exists('yourls_add_filter')) {
     }
 }
 
+if (!function_exists('yourls_get_option')) {
+    function yourls_get_option( $name, $default = null ) {
+        global $yourls_options;
+        return isset($yourls_options[$name]) ? $yourls_options[$name] : $default;
+    }
+}
+
+if (!function_exists('yourls_update_option')) {
+    function yourls_update_option( $name, $value ) {
+        global $yourls_options;
+        $yourls_options[$name] = $value;
+        return true;
+    }
+}
+
+if (!function_exists('yourls_register_plugin_page')) {
+    function yourls_register_plugin_page( $page, $title, $function ) {
+        // For testing, we just store the registered pages
+        global $yourls_plugin_pages;
+        if (!isset($yourls_plugin_pages)) {
+            $yourls_plugin_pages = array();
+        }
+        $yourls_plugin_pages[$page] = array('title' => $title, 'function' => $function);
+    }
+}
+
+if (!function_exists('yourls_create_nonce')) {
+    function yourls_create_nonce( $action ) {
+        return 'test-nonce-' . $action;
+    }
+}
+
+if (!function_exists('yourls_verify_nonce')) {
+    function yourls_verify_nonce( $action, $nonce ) {
+        return true; // For testing, always return true
+    }
+}
+
 // Start session for tests
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Initialize global arrays for storing hooks and options
+if (!isset($yourls_actions)) {
+    $yourls_actions = array();
+}
+if (!isset($yourls_filters)) {
+    $yourls_filters = array();
+}
+if (!isset($yourls_options)) {
+    $yourls_options = array();
 }
 
 // Load every plugin in the monorepo so its hooks and functions are available

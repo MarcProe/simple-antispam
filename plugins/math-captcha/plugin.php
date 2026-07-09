@@ -16,10 +16,33 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Load settings page
+require_once __DIR__ . '/settings.php';
+
+function math_captcha_get_min(): int
+{
+    $min = yourls_get_option('math_captcha_min', 1);
+    return (int) $min;
+}
+
+function math_captcha_get_max(): int
+{
+    $max = yourls_get_option('math_captcha_max', 49);
+    return (int) $max;
+}
+
 function math_captcha_generate_question(): void
 {
-    $num1 = rand(1, 99);
-    $num2 = rand(1, 99);
+    $min = math_captcha_get_min();
+    $max = math_captcha_get_max();
+    
+    // Ensure max is at least min + 1
+    if ($max <= $min) {
+        $max = $min + 1;
+    }
+    
+    $num1 = rand($min, $max);
+    $num2 = rand($min, $max);
     $_SESSION['math_captcha_question'] = "$num1 + $num2";
     $_SESSION['math_captcha_answer']   = $num1 + $num2;
 }
