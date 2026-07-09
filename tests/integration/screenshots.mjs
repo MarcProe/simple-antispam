@@ -9,6 +9,8 @@
  *   3. close-up of the CAPTCHA field
  *   4. wrong answer rejected (error feedback)
  *   5. correct answer accepted (URL shortened)
+ *   6. settings page
+  *   6. settings page
  *
  * Because this runs through the browser it also exercises the plugin's
  * JavaScript hook (the `add_link` wrapper that injects the answer into the
@@ -21,10 +23,10 @@
  *   BASE_URL        (default http://localhost:8080)
  *   ADMIN_USER      (default test-admin)
  *   ADMIN_PASS      (default test-password)
- *   SCREENSHOT_DIR  (default tests/integration/screenshots)
+ *   SCREENSHOT_DIR  (default docs/screenshots)
  *   CHROMIUM_PATH   (optional explicit Chromium executable)
  *
- * Usage:  node tests/integration/screenshots.mjs
+ * Usage:  node docs/screenshots.mjs
  */
 
 import { chromium } from 'playwright';
@@ -34,7 +36,7 @@ import { resolve } from 'node:path';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 const ADMIN_USER = process.env.ADMIN_USER || 'test-admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'test-password';
-const SCREENSHOT_DIR = resolve(process.env.SCREENSHOT_DIR || 'tests/integration/screenshots');
+const SCREENSHOT_DIR = resolve(process.env.SCREENSHOT_DIR || 'docs/screenshots');
 
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -139,6 +141,14 @@ try {
   check(/captcha/i.test(missingText), `missing answer rejected client-side ("${missingText.trim()}")`);
   await page.screenshot({ path: shot('06-missing-answer-rejected.png'), fullPage: true });
   console.log('Captured 06-missing-answer-rejected.png');
+
+\  // --- 7. Settings page ---
+  // Navigate to the Math CAPTCHA settings page and capture a screenshot.
+  await page.goto(`${BASE_URL}/admin/plugins.php?page=math-captcha`);
+  await page.waitForSelector('h1:has-text("Math CAPTCHA Settings")');
+  await page.screenshot({ path: shot('08-settings-page.png'), fullPage: true });
+  console.log('Captured 08-settings-page.png');
+
 
   // --- 7. Mobile viewport ---
   // Same logged-in session, narrow screen: verify the CAPTCHA field renders

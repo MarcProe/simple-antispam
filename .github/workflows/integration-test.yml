@@ -325,6 +325,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Capture screenshots
+          SCREENSHOT_DIR: ../../docs/screenshots
         working-directory: tests/integration
         env:
           BASE_URL: http://localhost:8080
@@ -339,7 +340,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: integration-test-screenshots
-          path: tests/integration/screenshots/
+          path: docs/screenshots/
           if-no-files-found: ignore
           retention-days: 30
 

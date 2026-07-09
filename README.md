@@ -39,6 +39,10 @@ With the correct answer, the URL is shortened as usual:
 Leaving the answer empty is blocked client-side before any request is sent:
 
 ![Missing answer rejected client-side](docs/screenshots/06-missing-answer-rejected.png)
+nThe plugin settings page allows configuring the number range for the math questions:
+
+![Math CAPTCHA settings page](docs/screenshots/08-settings-page.png)
+
 
 The field also renders sensibly on a mobile viewport:
 
@@ -203,6 +207,8 @@ request; the screenshots are uploaded as a workflow artifact. See
 [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md) for the full documentation.
 
 ## Files
+- `plugins/math-captcha/settings.php` - Settings page for configuring the CAPTCHA number range
+
 
 - `plugins/math-captcha/plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
 - `sample-public-front-page.txt` - Ready-to-use public front page template with the CAPTCHA wired in (see [Enabling the CAPTCHA on the public front page](#enabling-the-captcha-on-the-public-front-page-unauthorized-users))
