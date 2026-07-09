@@ -60,5 +60,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Load the plugin
-require_once __DIR__ . '/../plugin.php';
+// Load every plugin in the monorepo so its hooks and functions are available
+// to the test suite. New plugins added under plugins/ are picked up automatically.
+foreach (glob(__DIR__ . '/../plugins/*/plugin.php') as $plugin_file) {
+    require_once $plugin_file;
+}

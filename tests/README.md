@@ -1,6 +1,11 @@
-# Math CAPTCHA Plugin - Test Suite
+# Test Suite
 
-This directory contains comprehensive PHPUnit tests for the Math CAPTCHA plugin.
+This directory holds the shared test harness for the repository's plugins: the
+`bootstrap.php` that mocks the YOURLS API and auto-loads every plugin under
+`plugins/`, plus the `integration/` suite that exercises a real YOURLS install.
+
+Each plugin's own PHPUnit tests live alongside its code, e.g. the Math CAPTCHA
+tests are in `plugins/math-captcha/tests/MathCaptchaTest.php`.
 
 ## Requirements
 
@@ -87,11 +92,15 @@ The test suite covers the following functionality:
 
 ```
 tests/
-├── bootstrap.php       # Test bootstrap - mocks YOURLS functions
-├── MathCaptchaTest.php # Main test class with all test cases
+├── bootstrap.php       # Shared bootstrap - mocks YOURLS + auto-loads every plugin
 ├── README.md           # This file
 └── integration/        # Integration tests against a real YOURLS install,
                         # incl. Playwright browser screenshots (see its README)
+
+plugins/
+└── math-captcha/
+    └── tests/
+        └── MathCaptchaTest.php  # Unit tests for the Math CAPTCHA plugin
 ```
 
 ## Writing New Tests

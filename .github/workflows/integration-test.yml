@@ -30,7 +30,7 @@ jobs:
         run: composer install --no-progress
 
       - name: Run unit tests
-        run: vendor/bin/phpunit tests/MathCaptchaTest.php
+        run: vendor/bin/phpunit
 
       - name: Run standalone integration checks
         run: |
@@ -74,7 +74,7 @@ jobs:
 
           # Install this plugin
           mkdir -p "${YOURLS_DIR}/user/plugins"
-          cp -r "${GITHUB_WORKSPACE}" "${YOURLS_DIR}/user/plugins/math-captcha"
+          cp -r "${GITHUB_WORKSPACE}/plugins/math-captcha" "${YOURLS_DIR}/user/plugins/math-captcha"
 
           echo "YOURLS prepared"
 

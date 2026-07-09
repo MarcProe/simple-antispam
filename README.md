@@ -177,7 +177,7 @@ For background on YOURLS' public interface, see the
 
 ## Customization
 
-You can modify the plugin behavior by editing the `plugin.php` file:
+You can modify the plugin behavior by editing the `plugins/math-captcha/plugin.php` file:
 
 - **Change number range**: Edit the `math_captcha_generate_question()` function to change the range of numbers (currently 1-99)
 - **Change styling**: Modify the CSS in the `math_captcha_add_css()` function
@@ -187,7 +187,7 @@ You can modify the plugin behavior by editing the `plugin.php` file:
 
 The plugin ships with a full test suite:
 
-- **Unit tests** (`tests/MathCaptchaTest.php`): PHPUnit tests against a mocked
+- **Unit tests** (`plugins/math-captcha/tests/MathCaptchaTest.php`): PHPUnit tests against a mocked
   YOURLS API — `composer install && composer test`
 - **Integration tests** (`tests/integration/`): install a real YOURLS with the
   plugin activated and exercise the CAPTCHA through the admin interface
@@ -202,7 +202,7 @@ request; the screenshots are uploaded as a workflow artifact. See
 
 ## Files
 
-- `plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
+- `plugins/math-captcha/plugin.php` - Main plugin file with all the PHP logic, embedded JavaScript, and CSS
 - `sample-public-front-page.txt` - Ready-to-use public front page template with the CAPTCHA wired in (see [Enabling the CAPTCHA on the public front page](#enabling-the-captcha-on-the-public-front-page-unauthorized-users))
 - `docs/captcha-public-front-page.patch` - Patch that adds the CAPTCHA integration to YOURLS' own stock sample front page
 - `README.md` - This documentation file

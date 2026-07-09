@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="tests/bootstrap.php">
     <testsuites>
-        <testsuite name="Math CAPTCHA Plugin Tests">
-            <directory>tests</directory>
+        <testsuite name="Plugin Unit Tests">
+            <directory>plugins</directory>
         </testsuite>
     </testsuites>
     <filter>
         <whitelist processUncoveredFilesFromWhitelist="true">
-            <file>plugin.php</file>
+            <directory suffix="plugin.php">plugins</directory>
         </whitelist>
     </filter>
 </phpunit>

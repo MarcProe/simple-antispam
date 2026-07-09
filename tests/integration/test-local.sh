@@ -74,7 +74,7 @@ tar -xzf yourls.tar.gz
 mv "YOURLS-${YOURLS_VERSION}" yourls
 
 # Copy plugin
-PLUGIN_DIR=$(cd "$(dirname "$0")/../../" && pwd)
+PLUGIN_DIR=$(cd "$(dirname "$0")/../../plugins/math-captcha" && pwd)
 mkdir -p "$YOURLS_DIR/user/plugins"
 cp -r "$PLUGIN_DIR" "$YOURLS_DIR/user/plugins/math-captcha"
 
