@@ -12,10 +12,12 @@
     <!-- YOURLS plugins must register hooks at load time; side effects are unavoidable -->
     <rule ref="PSR1.Files.SideEffects">
         <exclude-pattern>*/plugin.php</exclude-pattern>
+        <exclude-pattern>*/settings.php</exclude-pattern>
     </rule>
 
     <!-- HTML/CSS template lines may exceed 120 chars; not meaningful to enforce -->
     <rule ref="Generic.Files.LineLength">
         <exclude-pattern>*/plugin.php</exclude-pattern>
+        <exclude-pattern>*/settings.php</exclude-pattern>
     </rule>
 </ruleset>
