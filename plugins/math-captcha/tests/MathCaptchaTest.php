@@ -399,9 +399,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
     {
         global $yourls_plugin_pages;
 
-        // Trigger the registration
-        math_captcha_register_settings_page();
-
+        // The settings page is registered when plugin.php is loaded
         $this->assertArrayHasKey('math-captcha', $yourls_plugin_pages);
         $this->assertEquals('Math CAPTCHA', $yourls_plugin_pages['math-captcha']['title']);
         $this->assertEquals('math_captcha_settings_page', $yourls_plugin_pages['math-captcha']['function']);

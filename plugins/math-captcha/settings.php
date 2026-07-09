@@ -7,13 +7,6 @@ if (!defined('YOURLS_ABSPATH')) {
     die();
 }
 
-// Register the settings page
-function math_captcha_register_settings_page(): void
-{
-    yourls_register_plugin_page('math-captcha', 'Math CAPTCHA', 'math_captcha_settings_page');
-}
-yourls_add_action('plugins_loaded', 'math_captcha_register_settings_page');
-
 // Settings page handler
 function math_captcha_settings_page(): void
 {

@@ -19,6 +19,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // Load settings page
 require_once __DIR__ . '/settings.php';
 
+// Register settings page
+yourls_register_plugin_page('math-captcha', 'Math CAPTCHA', 'math_captcha_settings_page');
+
 function math_captcha_get_min(): int
 {
     $min = yourls_get_option('math_captcha_min', 1);
@@ -35,12 +38,12 @@ function math_captcha_generate_question(): void
 {
     $min = math_captcha_get_min();
     $max = math_captcha_get_max();
-    
+
     // Ensure max is at least min + 1
     if ($max <= $min) {
         $max = $min + 1;
     }
-    
+
     $num1 = rand($min, $max);
     $num2 = rand($min, $max);
     $_SESSION['math_captcha_question'] = "$num1 + $num2";
