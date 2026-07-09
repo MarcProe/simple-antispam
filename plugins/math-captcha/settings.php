@@ -1,7 +1,7 @@
 <?php
-/*
-Settings page for Math CAPTCHA plugin
-*/
+/**
+ * Settings page for Math CAPTCHA plugin
+ */
 
 if (!defined('YOURLS_ABSPATH')) {
     die();
