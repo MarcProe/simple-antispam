@@ -18,7 +18,6 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $yourls_actions = array();
         $yourls_filters = array();
         $yourls_options = array();
-        $yourls_plugin_pages = array();
 
         // Load plugin.php to register hooks and settings page
         require_once __DIR__ . '/../plugin.php';
@@ -310,7 +309,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
 
     public function testAnswerAlwaysPositive()
     {
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; i < 100; $i++) {
             math_captcha_generate_question();
             $answer = $_SESSION['math_captcha_answer'];
 
@@ -365,7 +364,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         yourls_update_option('math_captcha_min', 10);
         yourls_update_option('math_captcha_max', 20);
 
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; i < 50; $i++) {
             math_captcha_generate_question();
             $question = $_SESSION['math_captcha_question'];
             $parts = explode(' + ', $question);
