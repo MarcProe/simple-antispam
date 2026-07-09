@@ -324,7 +324,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         math_captcha_generate_question();
 
         $this->assertArrayHasKey('math_captcha_question', $_SESSION);
-        $this->assertArrayNotHasKey('math_captcha_answer', $_SESSION);
+        $this->assertArrayHasKey('math_captcha_answer', $_SESSION);
 
         math_captcha_verify('12');
 
