@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Settings page for Math CAPTCHA plugin
  */
