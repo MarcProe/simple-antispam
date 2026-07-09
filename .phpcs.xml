@@ -7,7 +7,6 @@
     <!-- Plugin source is linted; each plugin's tests keep the YOURLS test style -->
     <exclude-pattern>*/tests/*</exclude-pattern>
 
-
     <rule ref="PSR12" />
 
     <!-- YOURLS plugins must register hooks at load time; side effects are unavoidable -->
