@@ -7,12 +7,17 @@ if (!defined('YOURLS_ABSPATH')) {
     die();
 }
 
-// Settings page handler
+/**
+ * Settings page handler
+ */
 function math_captcha_settings_page(): void
 {
     // Save settings if form was submitted
-    if (isset($_POST['math_captcha_save']) && isset($_POST['nonce']) &&
-        yourls_verify_nonce('math_captcha_save_settings', $_POST['nonce'])) {
+    if (
+        isset($_POST['math_captcha_save']) &&
+        isset($_POST['nonce']) &&
+        yourls_verify_nonce('math_captcha_save_settings', $_POST['nonce'])
+    ) {
         $min = isset($_POST['math_captcha_min']) ? (int) $_POST['math_captcha_min'] : 1;
         $max = isset($_POST['math_captcha_max']) ? (int) $_POST['math_captcha_max'] : 49;
 
