@@ -108,6 +108,9 @@ if (!isset($yourls_filters)) {
 if (!isset($yourls_options)) {
     $yourls_options = array();
 }
+if (!isset($yourls_plugin_pages)) {
+    $yourls_plugin_pages = array();
+}
 
 // Load every plugin in the monorepo so its hooks and functions are available
 // to the test suite. New plugins added under plugins/ are picked up automatically.
