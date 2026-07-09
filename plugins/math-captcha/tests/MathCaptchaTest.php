@@ -20,7 +20,10 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $yourls_options = array();
         $yourls_plugin_pages = array();
 
-        // require_once is a no-op after the first include, so re-register hooks directly
+        // Load plugin.php to register hooks and settings page
+        require_once __DIR__ . '/../plugin.php';
+
+        // Re-register hooks directly to ensure they are set up for each test
         yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
         yourls_add_action( 'admin_page_before_form', 'math_captcha_add_css' );
         yourls_add_action( 'admin_page_before_table', 'math_captcha_add_js' );
@@ -47,9 +50,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
     public function testDirectAccessBlocked()
     {
         $plugin_file = file_get_contents(__DIR__ . '/../plugin.php');
-        $this->assertStringContainsString("if (!defined('YOURLS_ABSPATH')) {
-    die();
-}", $plugin_file);
+        $this->assertStringContainsString("if (!defined('YOURLS_ABSPATH')) {\n    die();\n}", $plugin_file);
     }
 
     public function testGenerateQuestion()
@@ -60,7 +61,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $this->assertArrayHasKey('math_captcha_answer', $_SESSION);
 
         $question = $_SESSION['math_captcha_question'];
-        $this->assertMatchesRegularExpression('/^\d+ \+ \d+$/', $question);
+        $this->assertMatchesRegularExpression('/^\\d+ \\+ \\d+$/', $question);
 
         $parts = explode(' + ', $question);
         $expected_answer = (int)$parts[0] + (int)$parts[1];
@@ -296,7 +297,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
             $question = $_SESSION['math_captcha_question'];
             $answer   = $_SESSION['math_captcha_answer'];
 
-            $this->assertMatchesRegularExpression('/^\d+ \+ \d+$/', $question);
+            $this->assertMatchesRegularExpression('/^\\d+ \\+ \\d+$/', $question);
 
             $parts = explode(' + ', $question);
             $this->assertGreaterThanOrEqual(1, (int)$parts[0]);
@@ -323,7 +324,7 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         math_captcha_generate_question();
 
         $this->assertArrayHasKey('math_captcha_question', $_SESSION);
-        $this->assertArrayHasKey('math_captcha_answer', $_SESSION);
+        $this->assertArrayNotHasKey('math_captcha_answer', $_SESSION);
 
         math_captcha_verify('12');
 

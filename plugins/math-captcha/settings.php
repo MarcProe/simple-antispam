@@ -11,8 +11,8 @@ if (!defined('YOURLS_ABSPATH')) {
 function math_captcha_settings_page(): void
 {
     // Save settings if form was submitted
-    if (isset($_POST['math_captcha_save']) && isset($_POST['nonce']) && \
-yourls_verify_nonce('math_captcha_save_settings', $_POST['nonce'])) {
+    if (isset($_POST['math_captcha_save']) && isset($_POST['nonce']) &&
+        yourls_verify_nonce('math_captcha_save_settings', $_POST['nonce'])) {
         $min = isset($_POST['math_captcha_min']) ? (int) $_POST['math_captcha_min'] : 1;
         $max = isset($_POST['math_captcha_max']) ? (int) $_POST['math_captcha_max'] : 49;
 
@@ -37,14 +37,14 @@ yourls_verify_nonce('math_captcha_save_settings', $_POST['nonce'])) {
     echo '<div class="wrap">';
     echo '<h1>Math CAPTCHA Settings</h1>';
     echo '<form method="post" action="">';
-    echo '<input type="hidden" name="nonce" value="' . \
-yourls_esc_attr(yourls_create_nonce('math_captcha_save_settings')) . '" />';
+    echo '<input type="hidden" name="nonce" value="' .
+        yourls_esc_attr(yourls_create_nonce('math_captcha_save_settings')) . '" />';
     echo '<table class="form-table">';
     echo '<tr>';
     echo '<th scope="row"><label for="math_captcha_min">Minimum Number</label></th>';
     echo '<td>';
-    echo '<input type="number" id="math_captcha_min" name="math_captcha_min" value="' . \
-yourls_esc_attr((string) $min) . '" min="0" max="99" />';
+    echo '<input type="number" id="math_captcha_min" name="math_captcha_min" value="' .
+        yourls_esc_attr((string) $min) . '" min="0" max="99" />';
     echo '<p class="description">The minimum number to use in addition problems ';
     echo '(default: 1).</p>';
     echo '</td>';
@@ -52,8 +52,8 @@ yourls_esc_attr((string) $min) . '" min="0" max="99" />';
     echo '<tr>';
     echo '<th scope="row"><label for="math_captcha_max">Maximum Number</label></th>';
     echo '<td>';
-    echo '<input type="number" id="math_captcha_max" name="math_captcha_max" value="' . \
-yourls_esc_attr((string) $max) . '" min="1" max="99" />';
+    echo '<input type="number" id="math_captcha_max" name="math_captcha_max" value="' .
+        yourls_esc_attr((string) $max) . '" min="1" max="99" />';
     echo '<p class="description">The maximum number to use in addition problems ';
     echo '(default: 49). Must be greater than or equal to the minimum.</p>';
     echo '</td>';

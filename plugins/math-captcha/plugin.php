@@ -75,7 +75,7 @@ function math_captcha_add_field_to_form(): void
     ?>
     <div id="math-captcha-field" role="group" aria-labelledby="math-captcha-label">
         <label id="math-captcha-label" for="math-captcha-answer"><strong><?php echo yourls_esc_html(yourls__('Math CAPTCHA')); ?></strong></label>:
-        <span id="math-captcha-question"> <?php echo yourls_esc_html($question); ?> = </span>
+        <span id="math-captcha-question"><?php echo yourls_esc_html($question); ?> = </span>
         <input
             type="text"
             id="math-captcha-answer"
