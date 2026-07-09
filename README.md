@@ -1,5 +1,7 @@
 # Math CAPTCHA Plugin for YOURLS
 
+[![PHP Lint](https://github.com/MarcProe/simple-antispam/actions/workflows/phpcs.yml/badge.svg)](https://github.com/MarcProe/simple-antispam/actions/workflows/phpcs.yml)
+
 A simple anti-spam plugin for YOURLS that requires users to solve a basic math addition problem before they can shorten a URL. This helps prevent automated bot submissions while keeping the user experience simple and accessible.
 
 ## Features
