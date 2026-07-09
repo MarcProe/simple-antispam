@@ -9,6 +9,8 @@
  *   3. close-up of the CAPTCHA field
  *   4. wrong answer rejected (error feedback)
  *   5. correct answer accepted (URL shortened)
+ *   6. settings page
+ *   7. mobile viewport
  *
  * Because this runs through the browser it also exercises the plugin's
  * JavaScript hook (the `add_link` wrapper that injects the answer into the
@@ -21,7 +23,7 @@
  *   BASE_URL        (default http://localhost:8080)
  *   ADMIN_USER      (default test-admin)
  *   ADMIN_PASS      (default test-password)
- *   SCREENSHOT_DIR  (default tests/integration/screenshots)
+ *   SCREENSHOT_DIR  (default docs/screenshots)
  *   CHROMIUM_PATH   (optional explicit Chromium executable)
  *
  * Usage:  node tests/integration/screenshots.mjs
@@ -34,7 +36,7 @@ import { resolve } from 'node:path';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 const ADMIN_USER = process.env.ADMIN_USER || 'test-admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'test-password';
-const SCREENSHOT_DIR = resolve(process.env.SCREENSHOT_DIR || 'tests/integration/screenshots');
+const SCREENSHOT_DIR = resolve(process.env.SCREENSHOT_DIR || 'docs/screenshots');
 
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -83,14 +85,9 @@ try {
   console.log('Captured 03-captcha-field-closeup.png');
 
   // --- 4. Wrong answer rejected ---
-  // Operands are 1-99, so 99999 can never be the right answer.
   await page.fill('#add-url', 'https://example.com/wrong-answer');
   await page.fill('#math-captcha-answer', '99999');
   await page.click('#add-button');
-  // YOURLS renders feedback() messages in a jquery.notifyBar element that
-  // slides down over 400ms. Playwright reports it visible from the first
-  // animation frame (height ~1px), so wait until it is fully expanded
-  // before taking a screenshot.
   const waitForFeedbackBar = async () => {
     await page.locator('#__notifyBar').first().waitFor({ timeout: 10000 });
     await page.waitForFunction(
@@ -108,13 +105,10 @@ try {
   console.log('Captured 04-wrong-answer-rejected.png');
 
   // --- 5. Correct answer accepted ---
-  // A wrong attempt consumes the question and generates a new one, so reload
-  // to display the question that matches the current session answer.
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('#math-captcha-field');
   const fresh = await readQuestion();
 
-  // YOURLS_UNIQUE_URLS rejects duplicates, so use a URL no other test adds.
   const uniqueUrl = `https://example.com/browser-test-${Date.now()}`;
   await page.fill('#add-url', uniqueUrl);
   await page.fill('#math-captcha-answer', String(fresh.answer));
@@ -127,9 +121,6 @@ try {
   console.log('Captured 05-correct-answer-shortened.png');
 
   // --- 6. Missing answer rejected client-side ---
-  // The plugin's JavaScript hook blocks submission when the answer field is
-  // empty, before any request is sent — a separate path from the server-side
-  // check the curl tests exercise. Reload first for a clean form.
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('#math-captcha-field');
   await page.fill('#add-url', 'https://example.com/missing-answer');
@@ -140,9 +131,16 @@ try {
   await page.screenshot({ path: shot('06-missing-answer-rejected.png'), fullPage: true });
   console.log('Captured 06-missing-answer-rejected.png');
 
-  // --- 7. Mobile viewport ---
-  // Same logged-in session, narrow screen: verify the CAPTCHA field renders
-  // sensibly on a phone and document it.
+  // --- 7. Settings page ---
+  await page.goto(`${BASE_URL}/admin/plugins.php?page=math-captcha`);
+  await page.waitForSelector('h1:has-text("Math CAPTCHA Settings")');
+  await page.screenshot({ path: shot('08-settings-page.png'), fullPage: true });
+  console.log('Captured 08-settings-page.png');
+
+  // --- 8. Mobile viewport ---
+  // Return to admin page first to ensure CAPTCHA field is present
+  await page.goto(`${BASE_URL}/admin/`);
+  await page.waitForSelector('#math-captcha-field');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('#math-captcha-field');
