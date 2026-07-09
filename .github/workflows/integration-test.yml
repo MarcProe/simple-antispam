@@ -44,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+          SCREENSHOT_DIR: ../../docs/screenshots
       YOURLS_VERSION: '1.9.2'
       YOURLS_DIR: /tmp/yourls-test
       ADMIN_USER: test-admin
@@ -322,12 +323,10 @@ jobs:
         working-directory: tests/integration
         run: |
           npm install
-          npx playwright install --with-deps chromium
-
       - name: Capture screenshots
-          SCREENSHOT_DIR: ../../docs/screenshots
         working-directory: tests/integration
         env:
+          SCREENSHOT_DIR: ../../docs/screenshots
           BASE_URL: http://localhost:8080
         run: |
           # Debug output would clutter the screenshots; the config is
