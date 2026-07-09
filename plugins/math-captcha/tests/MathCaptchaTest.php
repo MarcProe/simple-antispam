@@ -14,10 +14,11 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
         $_REQUEST = array();
         $_POST    = array();
 
-        global $yourls_actions, $yourls_filters, $yourls_options;
+        global $yourls_actions, $yourls_filters, $yourls_options, $yourls_plugin_pages;
         $yourls_actions = array();
         $yourls_filters = array();
         $yourls_options = array();
+        $yourls_plugin_pages = array();
 
         // require_once is a no-op after the first include, so re-register hooks directly
         yourls_add_action( 'html_addnew', 'math_captcha_add_field_to_form' );
@@ -397,10 +398,10 @@ class MathCaptchaTest extends PHPUnit\Framework\TestCase
     public function testSettingsPageRegistered()
     {
         global $yourls_plugin_pages;
-        
+
         // Trigger the registration
         math_captcha_register_settings_page();
-        
+
         $this->assertArrayHasKey('math-captcha', $yourls_plugin_pages);
         $this->assertEquals('Math CAPTCHA', $yourls_plugin_pages['math-captcha']['title']);
         $this->assertEquals('math_captcha_settings_page', $yourls_plugin_pages['math-captcha']['function']);
