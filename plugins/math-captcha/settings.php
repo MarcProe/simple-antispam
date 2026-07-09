@@ -7,9 +7,7 @@ if (!defined('YOURLS_ABSPATH')) {
     die();
 }
 
-/**
- * Settings page handler
- */
+// Settings page handler
 function math_captcha_settings_page(): void
 {
     // Save settings if form was submitted
